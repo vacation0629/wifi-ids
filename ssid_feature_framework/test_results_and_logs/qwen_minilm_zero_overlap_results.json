@@ -1,0 +1,90 @@
+[
+  {
+    "idx": 1,
+    "observed": "Complimentary_Visitor_Broadband",
+    "target": "University_Guest_Portal",
+    "actual": "EVIL_TWIN",
+    "minilm_target_cos": 0.365,
+    "minilm_max_whitelist_cos": 0.4388,
+    "qwen3_target_cos": 0.6134,
+    "qwen3_max_whitelist_cos": 0.6742,
+    "description": "Deceptive visitor lure using 'Complimentary' and 'Broadband'."
+  },
+  {
+    "idx": 2,
+    "observed": "Campus_Registration_Desk",
+    "target": "University_Guest_Portal",
+    "actual": "EVIL_TWIN",
+    "minilm_target_cos": 0.4397,
+    "minilm_max_whitelist_cos": 0.5342,
+    "qwen3_target_cos": 0.7445,
+    "qwen3_max_whitelist_cos": 0.7445,
+    "description": "Onboarding captive portal phishing trap."
+  },
+  {
+    "idx": 3,
+    "observed": "Institutional_Faculty_WLAN",
+    "target": "University_Staff_Secure",
+    "actual": "EVIL_TWIN",
+    "minilm_target_cos": 0.4842,
+    "minilm_max_whitelist_cos": 0.5373,
+    "qwen3_target_cos": 0.7294,
+    "qwen3_max_whitelist_cos": 0.833,
+    "description": "Academic synonym clone imitating faculty network."
+  },
+  {
+    "idx": 4,
+    "observed": "Dormitory_Instructional_Net",
+    "target": "University_Student_WiFi",
+    "actual": "EVIL_TWIN",
+    "minilm_target_cos": 0.5008,
+    "minilm_max_whitelist_cos": 0.5008,
+    "qwen3_target_cos": 0.6833,
+    "qwen3_max_whitelist_cos": 0.6833,
+    "description": "Residential student trap mimicking academic subnet."
+  },
+  {
+    "idx": 5,
+    "observed": "HighBandwidth_Express_Access",
+    "target": "University_Campus_5G",
+    "actual": "EVIL_TWIN",
+    "minilm_target_cos": 0.2681,
+    "minilm_max_whitelist_cos": 0.2681,
+    "qwen3_target_cos": 0.5997,
+    "qwen3_max_whitelist_cos": 0.6363,
+    "description": "Speed lure exploiting zero-day terms 'HighBandwidth' and 'Express'."
+  },
+  {
+    "idx": 6,
+    "observed": "Campus_Portal_Verification",
+    "target": "University_Guest_Portal",
+    "actual": "EVIL_TWIN",
+    "minilm_target_cos": 0.6773,
+    "minilm_max_whitelist_cos": 0.6773,
+    "qwen3_target_cos": 0.7677,
+    "qwen3_max_whitelist_cos": 0.7677,
+    "description": "Credential harvesting captive portal trap using 'Verification'."
+  },
+  {
+    "idx": 7,
+    "observed": "Library_Study_Commons",
+    "target": "University_Campus_5G",
+    "actual": "BENIGN",
+    "minilm_target_cos": 0.2505,
+    "minilm_max_whitelist_cos": 0.283,
+    "qwen3_target_cos": 0.5593,
+    "qwen3_max_whitelist_cos": 0.6757,
+    "description": "Authentic departmental quiet study facility operated by library."
+  },
+  {
+    "idx": 8,
+    "observed": "Alumni_Association_Lounge",
+    "target": "University_Guest_Portal",
+    "actual": "BENIGN",
+    "minilm_target_cos": 0.594,
+    "minilm_max_whitelist_cos": 0.594,
+    "qwen3_target_cos": 0.6138,
+    "qwen3_max_whitelist_cos": 0.6448,
+    "description": "Authentic visitor hospitality network for campus alumni center."
+  }
+]

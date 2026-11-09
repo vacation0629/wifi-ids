@@ -1,0 +1,104 @@
+services:
+  # Main Kali ARM64 Detector Container (Simulating Raspberry Pi 4/5)
+  kali-detector:
+    image: kali-detector-arm64
+    container_name: kali-detector
+    platform: linux/arm64
+    mem_limit: 512m
+    cpus: 1.0
+    ports:
+      - "5555:5555/udp"
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      wifi-lab-net:
+        ipv4_address: 10.10.0.5
+    environment:
+      - USE_LOCAL_LLM=true
+      - LOCAL_LLM_URL=http://host.docker.internal:1234/v1
+      - LOCAL_LLM_MODEL=nvidia/nemotron-mini-4b-instruct
+      - HF_API_TOKEN=${HF_API_TOKEN:-}
+      - SIMILARITY_THRESHOLD=0.75
+      - RUN_MODE=listen
+      - LISTEN_PORT=5555
+    volumes:
+      - ./detector:/app
+    working_dir: /app
+    command: ["python3", "detector.py"]
+    restart: unless-stopped
+
+  # Client 1 (Lightweight Alpine) - Broadcasts Rogue / Evil Twin 802.11 Beacons
+  client-rogue-ap:
+    image: wifi-frame-client
+    container_name: client-rogue-ap
+    mem_limit: 45m
+    cpus: 0.2
+    networks:
+      wifi-lab-net:
+        ipv4_address: 10.10.0.11
+    environment:
+      - CLIENT_NAME=Rogue-AP-Simulator
+      - TARGET_HOST=10.10.0.5
+      - TARGET_PORT=5555
+      - FRAME_MODE=evil_twin
+      - INTERVAL_SEC=4.0
+    restart: unless-stopped
+
+  # Client 2 (Lightweight Alpine) - Broadcasts Legitimate Whitelisted 802.11 Beacons
+  client-authorized-ap:
+    image: wifi-frame-client
+    container_name: client-authorized-ap
+    mem_limit: 45m
+    cpus: 0.2
+    networks:
+      wifi-lab-net:
+        ipv4_address: 10.10.0.12
+    environment:
+      - CLIENT_NAME=Legit-AP-Simulator
+      - TARGET_HOST=10.10.0.5
+      - TARGET_PORT=5555
+      - FRAME_MODE=authorized
+      - INTERVAL_SEC=5.0
+    restart: unless-stopped
+
+  # Client 3 (Lightweight Alpine) - Generates 802.11 Probe Requests & Mixed Frames
+  client-probe-station:
+    image: wifi-frame-client
+    container_name: client-probe-station
+    mem_limit: 45m
+    cpus: 0.2
+    networks:
+      wifi-lab-net:
+        ipv4_address: 10.10.0.13
+    environment:
+      - CLIENT_NAME=Probe-Client-Simulator
+      - TARGET_HOST=10.10.0.5
+      - TARGET_PORT=5555
+      - FRAME_MODE=mixed
+      - INTERVAL_SEC=3.5
+    restart: unless-stopped
+
+  # Client 4 (Lightweight Alpine) - Fast / Roaming Evil Twin Beacon Generator
+  client-fast-rogue:
+    image: wifi-frame-client
+    container_name: client-fast-rogue
+    mem_limit: 45m
+    cpus: 0.2
+    networks:
+      wifi-lab-net:
+        ipv4_address: 10.10.0.14
+    environment:
+      - CLIENT_NAME=Fast-Rogue-AP
+      - TARGET_HOST=10.10.0.5
+      - TARGET_PORT=5555
+      - FRAME_MODE=evil_twin
+      - INTERVAL_SEC=2.0
+    restart: unless-stopped
+
+networks:
+  wifi-lab-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.0.0/24

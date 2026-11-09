@@ -1,0 +1,688 @@
+[
+  {
+    "observed_ssid": "University Campus 5G",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "authorized_exact",
+    "ground_truth_label": "BENIGN",
+    "description": "Authorized primary campus-wide high-speed wireless network matching whitelist."
+  },
+  {
+    "observed_ssid": "University Staff Secure",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "authorized_exact",
+    "ground_truth_label": "BENIGN",
+    "description": "Authorized encrypted 802.1X enterprise network for university faculty and staff."
+  },
+  {
+    "observed_ssid": "University Student WiFi",
+    "target_authorized_ssid": "University Student WiFi",
+    "category": "authorized_exact",
+    "ground_truth_label": "BENIGN",
+    "description": "Authorized student wireless network requiring institutional domain credentials."
+  },
+  {
+    "observed_ssid": "University Guest Portal",
+    "target_authorized_ssid": "University Guest Portal",
+    "category": "authorized_exact",
+    "ground_truth_label": "BENIGN",
+    "description": "Authorized public visitor network with official university web captive portal."
+  },
+  {
+    "observed_ssid": "eduroam",
+    "target_authorized_ssid": "eduroam",
+    "category": "authorized_exact",
+    "ground_truth_label": "BENIGN",
+    "description": "Authorized international educational roaming consortium SSID authenticated via federated 802.1X."
+  },
+  {
+    "observed_ssid": "Siam Wifi",
+    "target_authorized_ssid": "Siam Wifi",
+    "category": "authorized_exact",
+    "ground_truth_label": "BENIGN",
+    "description": "Authorized primary campus-wide wireless network for Siam University students and faculty."
+  },
+  {
+    "observed_ssid": "SiamXP Wifi",
+    "target_authorized_ssid": "SiamXP Wifi",
+    "category": "authorized_exact",
+    "ground_truth_label": "BENIGN",
+    "description": "Authorized high-performance experimental / faculty network at Siam University."
+  },
+  {
+    "observed_ssid": "Un1versity Campus 5G",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Visual homoglyph replacing 'i' with digit '1' in 'Un1versity' to deceive students."
+  },
+  {
+    "observed_ssid": "University Carnpus 5G",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Visual kerning attack replacing 'm' with 'rn' ('Carnpus') appearing identical in sans-serif fonts."
+  },
+  {
+    "observed_ssid": "University Campup 5G",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Keyboard transposition typo replacing terminal 's' with adjacent 'p' ('Campup') exploiting quick glances."
+  },
+  {
+    "observed_ssid": "Unversity Campus 5G",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Omission typosquatting dropping letter 'i' from 'University' to bypass static string matching."
+  },
+  {
+    "observed_ssid": "University Campuss 5G",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Duplication typo adding an extra 's' ('Campuss') mimicking authentic SSID on crowded device pickers."
+  },
+  {
+    "observed_ssid": "University 5taff Secure",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Visual homoglyph substituting 'S' with digit '5' ('5taff') targeting university personnel."
+  },
+  {
+    "observed_ssid": "University Staff 5ecure",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Visual homoglyph substituting 'S' in 'Secure' with digit '5' ('5ecure') to bypass static filters."
+  },
+  {
+    "observed_ssid": "University Staff Secur3",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Leet-speak homoglyph replacing terminal 'e' with digit '3' ('Secur3') to spoof staff network."
+  },
+  {
+    "observed_ssid": "Un1versity Staff Secure",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Homoglyph substitution replacing 'i' with digit '1' in 'Un1versity' targeting faculty credentials."
+  },
+  {
+    "observed_ssid": "University Student WiF1",
+    "target_authorized_ssid": "University Student WiFi",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Visual spoof replacing terminal 'i' with digit '1' ('WiF1') commonly used in rogue portal lures."
+  },
+  {
+    "observed_ssid": "University Student VVIFi",
+    "target_authorized_ssid": "University Student WiFi",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Visual homoglyph replacing 'W' with double 'V' ('VVIFi') deceiving user inspection."
+  },
+  {
+    "observed_ssid": "University Studnet WiFi",
+    "target_authorized_ssid": "University Student WiFi",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Typographical transposition swapping 'de' to 'dn' ('Studnet') targeting distracted students."
+  },
+  {
+    "observed_ssid": "University Gue5t Portal",
+    "target_authorized_ssid": "University Guest Portal",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Homoglyph substitution replacing 's' with digit '5' ('Gue5t') targeting visiting academics."
+  },
+  {
+    "observed_ssid": "University Guest P0rtal",
+    "target_authorized_ssid": "University Guest Portal",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Homoglyph substitution replacing letter 'o' with digit '0' ('P0rtal') for captive portal phishing."
+  },
+  {
+    "observed_ssid": "eduroarn",
+    "target_authorized_ssid": "eduroam",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Kerning attack replacing 'm' with 'rn' in eduroam exploiting narrow mobile screens."
+  },
+  {
+    "observed_ssid": "edur0am",
+    "target_authorized_ssid": "eduroam",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Homoglyph attack replacing letter 'o' with digit '0' in eduroam targeting roaming users."
+  },
+  {
+    "observed_ssid": "Siam W1f1",
+    "target_authorized_ssid": "Siam Wifi",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Visual homoglyph replacing 'i' with digit '1' in 'W1f1' targeting Siam University users."
+  },
+  {
+    "observed_ssid": "SiamXP W1f1",
+    "target_authorized_ssid": "SiamXP Wifi",
+    "category": "homoglyph_typo",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Visual homoglyph replacing 'i' with digit '1' targeting SiamXP high-speed campus users."
+  },
+  {
+    "observed_ssid": "University Campus 5G Fast",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Social engineering lure appending high-speed keyword 'Fast' to entice bandwidth-seeking users."
+  },
+  {
+    "observed_ssid": "Free University Campus 5G",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Lure attack prepending 'Free' to bait users into connecting without authentication."
+  },
+  {
+    "observed_ssid": "Official University Campus 5G",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Authority impersonation prepending 'Official' to establish false legitimacy."
+  },
+  {
+    "observed_ssid": "University Campus 5G VIP",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Prestige lure appending 'VIP' promising prioritized bandwidth to deceive executive users."
+  },
+  {
+    "observed_ssid": "University Staff Secure Login",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Credential harvesting trap appending 'Login' directing faculty to a fake sign-in page."
+  },
+  {
+    "observed_ssid": "University Staff Secure Verify",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Urgency pretext appending 'Verify' prompting staff to re-authenticate compromised accounts."
+  },
+  {
+    "observed_ssid": "Official University Staff Secure",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Authority lure prepending 'Official' targeting faculty members."
+  },
+  {
+    "observed_ssid": "University Student WiFi Free",
+    "target_authorized_ssid": "University Student WiFi",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Lure appending 'Free' to exploit cost-sensitive student populations."
+  },
+  {
+    "observed_ssid": "University Student WiFi Portal",
+    "target_authorized_ssid": "University Student WiFi",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Captive portal lure appending 'Portal' to trick students into entering university credentials."
+  },
+  {
+    "observed_ssid": "University Student WiFi AutoConnect",
+    "target_authorized_ssid": "University Student WiFi",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Convenience lure appending 'AutoConnect' encouraging non-vigilant automatic associations."
+  },
+  {
+    "observed_ssid": "Free University Student WiFi",
+    "target_authorized_ssid": "University Student WiFi",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Deceptive free access lure prepending 'Free' to student network."
+  },
+  {
+    "observed_ssid": "University Guest Portal Free",
+    "target_authorized_ssid": "University Guest Portal",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Lure appending 'Free' to legitimate guest portal to attract visitors."
+  },
+  {
+    "observed_ssid": "University Guest Portal Login",
+    "target_authorized_ssid": "University Guest Portal",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Phishing lure appending 'Login' to intercept guest Wi-Fi credentials."
+  },
+  {
+    "observed_ssid": "eduroam AutoConnect",
+    "target_authorized_ssid": "eduroam",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Convenience lure appending 'AutoConnect' to harvest federated academic credentials."
+  },
+  {
+    "observed_ssid": "eduroam Setup",
+    "target_authorized_ssid": "eduroam",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Configuration lure appending 'Setup' simulating onboarding SSID to steal outer-identity logins."
+  },
+  {
+    "observed_ssid": "Free Siam Wifi",
+    "target_authorized_ssid": "Siam Wifi",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Pretext lure prepending 'Free' to Siam University campus Wi-Fi."
+  },
+  {
+    "observed_ssid": "Siam Wifi Fast",
+    "target_authorized_ssid": "Siam Wifi",
+    "category": "word_addition",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "High-speed lure appending 'Fast' to Siam University campus network."
+  },
+  {
+    "observed_ssid": "University Campus",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "word_subtraction",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Truncation attack dropping technology token '5G' from University Campus 5G."
+  },
+  {
+    "observed_ssid": "Campus 5G",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "word_subtraction",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Truncation dropping institution prefix 'University' to blend in as local AP."
+  },
+  {
+    "observed_ssid": "University Staff",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "word_subtraction",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Truncation dropping security qualifier 'Secure' to capture unencrypted faculty traffic."
+  },
+  {
+    "observed_ssid": "Staff Secure",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "word_subtraction",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Truncation dropping organization name 'University' targeting building-specific APs."
+  },
+  {
+    "observed_ssid": "University Student",
+    "target_authorized_ssid": "University Student WiFi",
+    "category": "word_subtraction",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Truncation dropping trailing 'WiFi' keyword mimicking simplified device profiles."
+  },
+  {
+    "observed_ssid": "Student WiFi",
+    "target_authorized_ssid": "University Student WiFi",
+    "category": "word_subtraction",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Truncation dropping campus identity 'University' deceiving student associations."
+  },
+  {
+    "observed_ssid": "University Guest",
+    "target_authorized_ssid": "University Guest Portal",
+    "category": "word_subtraction",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Truncation dropping 'Portal' qualifier to present an unauthenticated open network."
+  },
+  {
+    "observed_ssid": "Guest Portal",
+    "target_authorized_ssid": "University Guest Portal",
+    "category": "word_subtraction",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Truncation dropping organization prefix 'University' mimicking localized visitor portals."
+  },
+  {
+    "observed_ssid": "University",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "word_subtraction",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Radical truncation reducing SSID to root institution name 'University'."
+  },
+  {
+    "observed_ssid": "Campus",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "word_subtraction",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Radical truncation reducing SSID to generic campus token."
+  },
+  {
+    "observed_ssid": "Staff",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "word_subtraction",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Radical truncation reducing SSID to single faculty role token 'Staff'."
+  },
+  {
+    "observed_ssid": "Student",
+    "target_authorized_ssid": "University Student WiFi",
+    "category": "word_subtraction",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Radical truncation reducing SSID to single student role token 'Student'."
+  },
+  {
+    "observed_ssid": "Siam",
+    "target_authorized_ssid": "Siam Wifi",
+    "category": "word_subtraction",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Truncation dropping 'Wifi' token from Siam University authorized network."
+  },
+  {
+    "observed_ssid": "University-Campus-5G",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "delimiter_case",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Delimiter mutation replacing spaces with hyphens in University Campus 5G."
+  },
+  {
+    "observed_ssid": "University_Campus_5G",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "delimiter_case",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Delimiter mutation replacing spaces with underscores in University Campus 5G."
+  },
+  {
+    "observed_ssid": "University.Campus.5G",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "delimiter_case",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Delimiter mutation replacing spaces with periods in University Campus 5G."
+  },
+  {
+    "observed_ssid": "university campus 5g",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "delimiter_case",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Case folding mutation rendering University Campus 5G in all lowercase."
+  },
+  {
+    "observed_ssid": "University-Staff-Secure",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "delimiter_case",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Delimiter mutation replacing spaces with hyphens in University Staff Secure."
+  },
+  {
+    "observed_ssid": "University_Staff_Secure",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "delimiter_case",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Delimiter mutation replacing spaces with underscores in University Staff Secure."
+  },
+  {
+    "observed_ssid": "University.Staff.Secure",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "delimiter_case",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Delimiter mutation replacing spaces with periods in University Staff Secure."
+  },
+  {
+    "observed_ssid": "university staff secure",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "delimiter_case",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Case mutation rendering University Staff Secure in all lowercase."
+  },
+  {
+    "observed_ssid": "University-Student-WiFi",
+    "target_authorized_ssid": "University Student WiFi",
+    "category": "delimiter_case",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Delimiter mutation replacing spaces with hyphens in University Student WiFi."
+  },
+  {
+    "observed_ssid": "University_Student_WiFi",
+    "target_authorized_ssid": "University Student WiFi",
+    "category": "delimiter_case",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Delimiter mutation replacing spaces with underscores in University Student WiFi."
+  },
+  {
+    "observed_ssid": "EDUROAM",
+    "target_authorized_ssid": "eduroam",
+    "category": "delimiter_case",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Case anomaly rendering eduroam in all uppercase, violating lowercase standard."
+  },
+  {
+    "observed_ssid": "Eduroam",
+    "target_authorized_ssid": "eduroam",
+    "category": "delimiter_case",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Case anomaly rendering eduroam in TitleCase, diverging from authentic lowercase profile."
+  },
+  {
+    "observed_ssid": "Siam_Wifi",
+    "target_authorized_ssid": "Siam Wifi",
+    "category": "delimiter_case",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Delimiter mutation replacing space with underscore targeting Siam Wifi."
+  },
+  {
+    "observed_ssid": "Siam-Wifi",
+    "target_authorized_ssid": "Siam Wifi",
+    "category": "delimiter_case",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Delimiter mutation replacing space with hyphen targeting Siam Wifi."
+  },
+  {
+    "observed_ssid": "SiamXP_Wifi",
+    "target_authorized_ssid": "SiamXP Wifi",
+    "category": "delimiter_case",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Delimiter mutation replacing space with underscore targeting SiamXP Wifi."
+  },
+  {
+    "observed_ssid": "College Campus 5G",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "semantic_relevant",
+    "ground_truth_label": "BENIGN",
+    "description": "Legitimate sister collegiate network operating on adjacent campus grounds."
+  },
+  {
+    "observed_ssid": "Faculty Staff Secure",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "semantic_relevant",
+    "ground_truth_label": "BENIGN",
+    "description": "Authorized faculty senate wireless subnet providing parallel administrative access."
+  },
+  {
+    "observed_ssid": "University Academic WiFi",
+    "target_authorized_ssid": "University Student WiFi",
+    "category": "semantic_relevant",
+    "ground_truth_label": "BENIGN",
+    "description": "Official instructional laboratory network dedicated to STEM coursework."
+  },
+  {
+    "observed_ssid": "University Library Guest",
+    "target_authorized_ssid": "University Guest Portal",
+    "category": "semantic_relevant",
+    "ground_truth_label": "BENIGN",
+    "description": "Legitimate public branch network managed by campus library system."
+  },
+  {
+    "observed_ssid": "Campus Research Lab 5G",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "semantic_relevant",
+    "ground_truth_label": "BENIGN",
+    "description": "Authorized department research group wireless network with dedicated bandwidth."
+  },
+  {
+    "observed_ssid": "Engineering Faculty Staff",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "semantic_relevant",
+    "ground_truth_label": "BENIGN",
+    "description": "Faculty of Engineering internal departmental wireless network."
+  },
+  {
+    "observed_ssid": "University Alumni Portal",
+    "target_authorized_ssid": "University Guest Portal",
+    "category": "semantic_relevant",
+    "ground_truth_label": "BENIGN",
+    "description": "Legitimate dedicated visitor network for university homecoming and alumni events."
+  },
+  {
+    "observed_ssid": "Medical School Staff WLAN",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "semantic_relevant",
+    "ground_truth_label": "BENIGN",
+    "description": "Affiliated university teaching hospital and medical school staff network."
+  },
+  {
+    "observed_ssid": "Campus Student HighSpeed",
+    "target_authorized_ssid": "University Student WiFi",
+    "category": "semantic_relevant",
+    "ground_truth_label": "BENIGN",
+    "description": "Legitimate campus residential hall partner high-speed network for student dormitories."
+  },
+  {
+    "observed_ssid": "Science Complex Guest",
+    "target_authorized_ssid": "University Guest Portal",
+    "category": "semantic_relevant",
+    "ground_truth_label": "BENIGN",
+    "description": "Legitimate dedicated guest network serving visitors to the campus Science & Technology complex."
+  },
+  {
+    "observed_ssid": "Uni Campus Net",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "semantic_relevant",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Unauthorized informal slang contraction ('Uni') masquerading as general campus infrastructure."
+  },
+  {
+    "observed_ssid": "University Intranet Secure",
+    "target_authorized_ssid": "University Staff Secure",
+    "category": "semantic_relevant",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Deceptive semantic lure mimicking administrative intranet access to harvest credentials."
+  },
+  {
+    "observed_ssid": "University Public Access",
+    "target_authorized_ssid": "University Guest Portal",
+    "category": "semantic_relevant",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Deceptive synonym lure mimicking open visitor services for unencrypted traffic interception."
+  },
+  {
+    "observed_ssid": "Campus Wide Open Net",
+    "target_authorized_ssid": "University Campus 5G",
+    "category": "semantic_relevant",
+    "ground_truth_label": "EVIL_TWIN",
+    "description": "Deceptive semantic lure claiming open campus-wide access, designed to siphon unauthenticated traffic."
+  },
+  {
+    "observed_ssid": "Cafe Amazon WiFi",
+    "target_authorized_ssid": null,
+    "category": "irrelevant_noise",
+    "ground_truth_label": "BENIGN",
+    "description": "Commercial coffee shop public Wi-Fi operating within on-campus retail concession."
+  },
+  {
+    "observed_ssid": "Starbucks Guest",
+    "target_authorized_ssid": null,
+    "category": "irrelevant_noise",
+    "ground_truth_label": "BENIGN",
+    "description": "Commercial coffee franchise customer Wi-Fi operating on or adjacent to university grounds."
+  },
+  {
+    "observed_ssid": "AIS SUPER WiFi",
+    "target_authorized_ssid": null,
+    "category": "irrelevant_noise",
+    "ground_truth_label": "BENIGN",
+    "description": "Commercial cellular telecommunications provider public hotspot offload infrastructure common in Thai universities."
+  },
+  {
+    "observed_ssid": "TrueMove H WiFi",
+    "target_authorized_ssid": null,
+    "category": "irrelevant_noise",
+    "ground_truth_label": "BENIGN",
+    "description": "Commercial telecom public Wi-Fi carrier offload network."
+  },
+  {
+    "observed_ssid": "dtac WiFi",
+    "target_authorized_ssid": null,
+    "category": "irrelevant_noise",
+    "ground_truth_label": "BENIGN",
+    "description": "Commercial cellular carrier public access point located near university commercial buildings."
+  },
+  {
+    "observed_ssid": "7Eleven Public",
+    "target_authorized_ssid": null,
+    "category": "irrelevant_noise",
+    "ground_truth_label": "BENIGN",
+    "description": "Convenience store chain customer Wi-Fi located at campus transit station."
+  },
+  {
+    "observed_ssid": "Dorm Room 302 5G",
+    "target_authorized_ssid": null,
+    "category": "irrelevant_noise",
+    "ground_truth_label": "BENIGN",
+    "description": "Personal residential student router operating inside university dormitory quarters."
+  },
+  {
+    "observed_ssid": "iPhone 15 Hotspot",
+    "target_authorized_ssid": null,
+    "category": "irrelevant_noise",
+    "ground_truth_label": "BENIGN",
+    "description": "Ad-hoc personal mobile tethering hotspot broadcast by an individual student smartphone."
+  },
+  {
+    "observed_ssid": "Galaxy S24 MobileAP",
+    "target_authorized_ssid": null,
+    "category": "irrelevant_noise",
+    "ground_truth_label": "BENIGN",
+    "description": "Personal smartphone Wi-Fi sharing hotspot active in student lounge."
+  },
+  {
+    "observed_ssid": "HP LaserJet Direct 4B",
+    "target_authorized_ssid": null,
+    "category": "irrelevant_noise",
+    "ground_truth_label": "BENIGN",
+    "description": "Wi-Fi Direct ad-hoc beacon broadcast by an administrative office network printer; benign IoT peripheral."
+  },
+  {
+    "observed_ssid": "Bangkok Bank Branch WiFi",
+    "target_authorized_ssid": null,
+    "category": "irrelevant_noise",
+    "ground_truth_label": "BENIGN",
+    "description": "Commercial banking branch dedicated secure customer/staff network located on campus."
+  },
+  {
+    "observed_ssid": "KFC Guest Free",
+    "target_authorized_ssid": null,
+    "category": "irrelevant_noise",
+    "ground_truth_label": "BENIGN",
+    "description": "Fast-food tenant public customer Wi-Fi operating in campus food center."
+  },
+  {
+    "observed_ssid": "Subway Customers WiFi",
+    "target_authorized_ssid": null,
+    "category": "irrelevant_noise",
+    "ground_truth_label": "BENIGN",
+    "description": "Retail dining outlet customer Wi-Fi located in student union complex."
+  },
+  {
+    "observed_ssid": "Campus Bus Transit FreeWiFi",
+    "target_authorized_ssid": null,
+    "category": "irrelevant_noise",
+    "ground_truth_label": "BENIGN",
+    "description": "Municipal campus shuttle transit passenger Wi-Fi operating on university transit buses."
+  }
+]

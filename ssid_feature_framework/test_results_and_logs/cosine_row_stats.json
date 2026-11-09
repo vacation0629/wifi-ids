@@ -1,0 +1,8 @@
+[
+  {
+    "id": 1,
+    "obs": "University_Campus_5G",
+    "tgt": "University_Campus_5G",
+    "cat": "authorized_exact",
+    "label": "BENIGN",
+    "ml_tgt": 

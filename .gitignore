@@ -1,0 +1,27 @@
+# ==============================================================================
+# Mandatory Agent Safety Policy & Protected Assets
+# ==============================================================================
+local_llm/models/
+local_llm/bin/
+*.gguf
+*.exe
+*.dll
+
+# Database & Telemetry Records
+detector/wifi_records.db
+*.db
+*.sqlite3
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+venv/
+.venv/
+env/
+.env
+
+# Antigravity artifacts & transcripts
+.gemini/
+.system_generated/

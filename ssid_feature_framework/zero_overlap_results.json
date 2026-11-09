@@ -1,0 +1,162 @@
+[
+  {
+    "idx": 1,
+    "observed": "Complimentary Visitor Broadband",
+    "target": "University Guest Portal",
+    "actual": "EVIL_TWIN",
+    "features": {
+      "f1_lev": 0.2581,
+      "f5_3gram": 0.0204,
+      "f11_lure": 0,
+      "f12_role": 0
+    },
+    "xgb_prob": 0.071,
+    "xgb_pred": "BENIGN",
+    "xgb_correct": false,
+    "embed_cosine": 0.66,
+    "nemotron_pred": "ERROR",
+    "nemotron_correct": false,
+    "nemotron_reason": "HTTPConnectionPool(host='127.0.0.1', port=1234): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError(\"HTTPConnection(host='127.0.0.1', port=1234): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it\"))",
+    "description": "Deceptive visitor lure; uses 'Complimentary' and 'Broadband' (zero-day synonyms not in hardcoded 19 lure words)."
+  },
+  {
+    "idx": 2,
+    "observed": "Campus Registration Desk",
+    "target": "University Guest Portal",
+    "actual": "EVIL_TWIN",
+    "features": {
+      "f1_lev": 0.0417,
+      "f5_3gram": 0.0,
+      "f11_lure": 0,
+      "f12_role": 1
+    },
+    "xgb_prob": 0.0305,
+    "xgb_pred": "BENIGN",
+    "xgb_correct": false,
+    "embed_cosine": 0.743,
+    "nemotron_pred": "ERROR",
+    "nemotron_correct": false,
+    "nemotron_reason": "HTTPConnectionPool(host='127.0.0.1', port=1234): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError(\"HTTPConnection(host='127.0.0.1', port=1234): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it\"))",
+    "description": "Onboarding captive portal phishing trap mimicking administrative registration desk."
+  },
+  {
+    "idx": 3,
+    "observed": "Institutional Faculty WLAN",
+    "target": "University Staff Secure",
+    "actual": "EVIL_TWIN",
+    "features": {
+      "f1_lev": 0.1154,
+      "f5_3gram": 0.0227,
+      "f11_lure": 0,
+      "f12_role": 1
+    },
+    "xgb_prob": 0.0269,
+    "xgb_pred": "BENIGN",
+    "xgb_correct": false,
+    "embed_cosine": 0.661,
+    "nemotron_pred": "ERROR",
+    "nemotron_correct": false,
+    "nemotron_reason": "HTTPConnectionPool(host='127.0.0.1', port=1234): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError(\"HTTPConnection(host='127.0.0.1', port=1234): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it\"))",
+    "description": "Academic synonym clone imitating faculty network ('Institutional', 'WLAN')."
+  },
+  {
+    "idx": 4,
+    "observed": "Dormitory Instructional Net",
+    "target": "University Student WiFi",
+    "actual": "EVIL_TWIN",
+    "features": {
+      "f1_lev": 0.1852,
+      "f5_3gram": 0.0,
+      "f11_lure": 0,
+      "f12_role": 0
+    },
+    "xgb_prob": 0.039,
+    "xgb_pred": "BENIGN",
+    "xgb_correct": false,
+    "embed_cosine": 0.6865,
+    "nemotron_pred": "ERROR",
+    "nemotron_correct": false,
+    "nemotron_reason": "HTTPConnectionPool(host='127.0.0.1', port=1234): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError(\"HTTPConnection(host='127.0.0.1', port=1234): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it\"))",
+    "description": "Residential student trap mimicking academic subnet using 'Instructional'."
+  },
+  {
+    "idx": 5,
+    "observed": "HighBandwidth Express Access",
+    "target": "University Campus 5G",
+    "actual": "EVIL_TWIN",
+    "features": {
+      "f1_lev": 0.1786,
+      "f5_3gram": 0.0,
+      "f11_lure": 0,
+      "f12_role": 0
+    },
+    "xgb_prob": 0.0678,
+    "xgb_pred": "BENIGN",
+    "xgb_correct": false,
+    "embed_cosine": 0.6372,
+    "nemotron_pred": "ERROR",
+    "nemotron_correct": false,
+    "nemotron_reason": "HTTPConnectionPool(host='127.0.0.1', port=1234): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError(\"HTTPConnection(host='127.0.0.1', port=1234): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it\"))",
+    "description": "Speed lure exploiting zero-day terms 'HighBandwidth' and 'Express'."
+  },
+  {
+    "idx": 6,
+    "observed": "Campus Portal Verification",
+    "target": "University Guest Portal",
+    "actual": "EVIL_TWIN",
+    "features": {
+      "f1_lev": 0.1154,
+      "f5_3gram": 0.1538,
+      "f11_lure": 0,
+      "f12_role": 1
+    },
+    "xgb_prob": 0.0576,
+    "xgb_pred": "BENIGN",
+    "xgb_correct": false,
+    "embed_cosine": 0.8325,
+    "nemotron_pred": "ERROR",
+    "nemotron_correct": false,
+    "nemotron_reason": "HTTPConnectionPool(host='127.0.0.1', port=1234): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError(\"HTTPConnection(host='127.0.0.1', port=1234): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it\"))",
+    "description": "Credential harvesting captive portal trap using 'Verification'."
+  },
+  {
+    "idx": 7,
+    "observed": "Library Study Commons",
+    "target": "University Campus 5G",
+    "actual": "BENIGN",
+    "features": {
+      "f1_lev": 0.1905,
+      "f5_3gram": 0.0278,
+      "f11_lure": 0,
+      "f12_role": 1
+    },
+    "xgb_prob": 0.0252,
+    "xgb_pred": "BENIGN",
+    "xgb_correct": true,
+    "embed_cosine": 0.5745,
+    "nemotron_pred": "ERROR",
+    "nemotron_correct": false,
+    "nemotron_reason": "HTTPConnectionPool(host='127.0.0.1', port=1234): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError(\"HTTPConnection(host='127.0.0.1', port=1234): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it\"))",
+    "description": "Authentic departmental quiet study facility operated by university library."
+  },
+  {
+    "idx": 8,
+    "observed": "Alumni Association Lounge",
+    "target": "University Guest Portal",
+    "actual": "BENIGN",
+    "features": {
+      "f1_lev": 0.16,
+      "f5_3gram": 0.0,
+      "f11_lure": 0,
+      "f12_role": 1
+    },
+    "xgb_prob": 0.0252,
+    "xgb_pred": "BENIGN",
+    "xgb_correct": true,
+    "embed_cosine": 0.7347,
+    "nemotron_pred": "ERROR",
+    "nemotron_correct": false,
+    "nemotron_reason": "HTTPConnectionPool(host='127.0.0.1', port=1234): Max retries exceeded with url: /v1/chat/completions (Caused by NewConnectionError(\"HTTPConnection(host='127.0.0.1', port=1234): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it\"))",
+    "description": "Authentic visitor hospitality network for campus alumni center."
+  }
+]

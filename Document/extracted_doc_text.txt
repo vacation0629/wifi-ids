@@ -1,0 +1,173 @@
+[1] ที่มาของโครงงาน
+[2]        ปัจจุบันเครือข่าย Wi-Fi ถูกใช้งานอย่างแพร่หลายในมหาวิทยาลัยและองค์กรต่าง ๆ ส่งผลให้เกิดความเสี่ยงด้านความมั่นคงปลอดภัยของข้อมูล โดยเฉพาะการโจมตีในรูปแบบ Evil Twin Attack ซึ่งผู้ไม่หวังดีสามารถสร้าง Access Point ปลอมที่มีชื่อเครือข่าย (SSID) เหมือนกับเครือข่ายจริง เพื่อหลอกให้ผู้ใช้งานเชื่อมต่อ และอาจนำไปสู่การโจมตีแบบ Man-in-the-Middle รวมถึงการดักจับข้อมูลสำคัญ เช่น ชื่อผู้ใช้และรหัสผ่าน
+[3] อย่างไรก็ตาม การตรวจจับเครือข่ายปลอมในสภาพแวดล้อมจริงยังคงเป็นเรื่องที่ท้าทาย เนื่องจากผู้โจมตีสามารถปลอมแปลงทั้ง SSID และ MAC Address ได้ ทำให้การใช้วิธีการตรวจสอบแบบ whitelist เพียงอย่างเดียวไม่เพียงพอ อีกทั้งการตรวจสอบแบบเดิมยังต้องอาศัยแรงงานคนและไม่สามารถทำงานได้อย่างต่อเนื่อง
+[4] ดังนั้น โครงงานนี้จึงมีวัตถุประสงค์เพื่อพัฒนา Evil Twin Detection and Prevention System สำหรับเครือข่ายไร้สาย โดยใช้ Raspberry Pi เป็นอุปกรณ์ตรวจจับ ร่วมกับเทคนิค Machine Learning ในการจำแนกความเสี่ยงของ Access Point และใช้แนวคิด Risk-based Detection เพื่อช่วยแจ้งเตือนและป้องกันผู้ใช้งานจากการเชื่อมต่อกับเครือข่ายปลอม อันจะช่วยเพิ่มความมั่นคงปลอดภัยให้กับระบบเครือข่ายโดยรวม
+[5] คำสำคัญ (keyword) สำหรับโครงงาน
+[6] ระบบตรวจจับ Evil twin
+[7] ความปลอดภัยเครือข่ายไร้สาย
+[8] การป้องกันการโจมตีทางไซเบอร์
+[9] เครือข่าย Wi-Fi
+[10] การตรวจสอบจุดเชื่อมต่อไร้สาย
+[11] Evil Twin Point Detection System
+[12] Wireless Network Security
+[13] Cyberattack Detection
+[14] Wi-Fi Network
+[15] Wireless Access Point Monitoring
+[16] วัตถุประสงค์ในการทำโครงงาน
+[17] เพื่อออกแบบและพัฒนาระบบตรวจจับ Evil Twin Access Point ในเครือข่ายไร้สาย
+[18] เพื่อศึกษาวิธีการตรวจจับจุดกระจายสัญญาณที่มีลักษณะต้องสงสัยจากข้อมูล SSID, BSSID, Channel และค่าพื้นฐานอื่นที่เกี่ยวข้อง
+[19] เพื่อใช้ Machine Learning ในการจำแนก Evil Twin
+[20] เพื่อแจ้งเตือนเมื่อพบจุดกระจายสัญญาณที่มีลักษณะเป็น Evil Twin หรือไม่อยู่ในรายการที่กำหนด
+[21] เพื่อลดระยะเวลาในการตรวจสอบและเฝ้าระวังเครือข่ายไร้สายของผู้ดูแลระบบ
+[22] ขอบเขตความสามารถของโครงงาน 
+[23] การตรวจจับ Access Point 
+[24] ตรวจจับ Access Point encryption ประเภท open ทั้งหมดในพื้นที่ 30-50 เมตร (ขึ้นกับสภาพแวดล้อม)
+[25] รองรับความถี่ 2.4 GHz และ 5 GHz (802.11 a/b/g/n/ac) 
+[26] วิธีการตรวจจับ (Passive Detection) 
+[27] ตรวจจับแบบเชิงรับ โดยสังเกต Management Frames (Beacon, Probe Request/Response) 
+[28] เก็บข้อมูล: SSID, BSSID, Channel, Signal Strength (RSSI), Encryption Type, Vendor Information (OUI)
+[29] การจำแนก Rogue Access Point 
+[30] เปรียบเทียบ BSSID กับฐานข้อมูล Authorized AP 
+[31] ตรวจจับ SSID ที่สัมพันธ์กับ AP ที่ถูกต้อง (Evil Twin Detection) 
+[32] วิเคราะห์ RSSI, BSSID, Encryption type
+[33] จัดระดับความเสี่ยง: High / Medium / Low / None
+[34] การแสดงผลและรายงาน 
+[35] Dashboard แบบ Real-time (Web-based) 
+[36] แสดงรายการ AP ทั้งหมด 
+[37] แยกประเภทตามระดับความเสี่ยง 
+[38] ระบบแจ้งเตือน 
+[39] Telegram notification เมื่อพบความเสี่ยงระดับ Medium ขึ้นไป
+[40] การเก็บข้อมูล 
+[41] เก็บข้อมูลใน Database SQLite
+[42] เครื่องมือ, เครื่องวัด และอุปกรณ์ที่ใช้
+[43] ฮาร์ดแวร์ (Hardware)
+[44] Raspberry Pi 4/5 
+[45] Wi-Fi Adapter รองรับ Monitor Mode
+[46] PC หรือ NoteBook สำหรับ Central Management
+[47] ซอฟต์แวร์ (Software)
+[48] Raspberry Pi OS
+[49] Ubuntu Server 20.04/22.04 LTS
+[50] Wireshark
+[51] Kismet
+[52] Git
+[53] แนวคิด หลักการ และทฤษฎีที่เกี่ยวข้อง
+[54] Evil Twin Attack
+[55] รูปที่ 1 การโจมตีแบบ Evil Twin
+[56] https://www.linkedin.com/pulse/what-evil-twin-attack-aby-s
+[57] Evil Twin Attack เป็นรูปแบบหนึ่งของการโจมตีในเครือข่ายไร้สาย (Wireless Network Attack) ที่ผู้โจมตีสร้าง Access Point (AP) ปลอม โดยตั้งค่า SSID (ชื่อเครือข่าย) ให้เหมือนหรือคล้ายกับเครือข่าย Wi-Fi ที่ถูกต้อง เพื่อหลอกให้ผู้ใช้งานเชื่อมต่อโดยไม่รู้ตัว เมื่อผู้ใช้เชื่อมต่อกับ Access Point ปลอมดังกล่าว ผู้โจมตีสามารถทำหน้าที่เป็นตัวกลาง (Man-in-the-Middle) เพื่อดักจับ วิเคราะห์ หรือแก้ไขข้อมูลที่รับส่งผ่านเครือข่ายได้
+[58] ลักษณะสำคัญของ Evil Twin คือความสามารถในการเลียนแบบเครือข่ายจริงได้อย่างแนบเนียน โดยผู้โจมตีสามารถตั้งค่า SSID ให้ตรงกับเครือข่ายเป้าหมาย และอาจปรับค่าต่าง ๆ เช่น Channel หรือกำลังส่งสัญญาณ (Signal Strength) เพื่อให้ Access Point ปลอมมีความน่าสนใจและมีโอกาสที่อุปกรณ์ของผู้ใช้จะเลือกเชื่อมต่อมากขึ้น โดยเฉพาะในกรณีที่อุปกรณ์ตั้งค่าให้เชื่อมต่ออัตโนมัติ (Auto-connect)
+[59] การโจมตี Evil Twin มักเกิดขึ้นร่วมกับเทคนิคอื่น เช่น Deauthentication Attack ซึ่งเป็นการส่งเฟรมเพื่อบังคับให้ผู้ใช้หลุดจากเครือข่าย Wi-Fi จริง เมื่อผู้ใช้ถูกตัดการเชื่อมต่อ อุปกรณ์จะพยายามเชื่อมต่อใหม่ และมีโอกาสเลือกเชื่อมต่อกับ Access Point ปลอมที่มีสัญญาณแรงกว่า ส่งผลให้ผู้ใช้ตกเป็นเหยื่อของการโจมตีโดยไม่รู้ตัว
+[60] Wifi Management Frame
+[61] เฟรมประเภท Wi-Fi Management Frame เป็นส่วนหนึ่งของมาตรฐาน IEEE 802.11 ที่ใช้สำหรับควบคุมและจัดการการเชื่อมต่อระหว่างอุปกรณ์ลูกข่าย (client) และจุดเชื่อมต่อ (Access Point: AP) โดยไม่ได้ใช้ส่งข้อมูลผู้ใช้โดยตรง หน้าที่หลักของเฟรมประเภทนี้คือการสร้าง (establish), รักษา (maintain) และยุติ (terminate) การเชื่อมต่อในเครือข่ายไร้สาย ตัวอย่างของ management frame ได้แก่ beacon frame ที่ AP ใช้ประกาศตัวตนและพารามิเตอร์ของเครือข่าย (เช่น SSID, channel, security), probe request/response สำหรับการค้นหาเครือข่าย, authentication และ association frame สำหรับการเข้าร่วมเครือข่าย รวมถึง deauthentication และ disassociation frame สำหรับตัดการเชื่อมต่อ เนื่องจากเฟรมเหล่านี้มีบทบาทสำคัญในกระบวนการควบคุมเครือข่าย และในบางกรณีไม่ได้ถูกเข้ารหัส (โดยเฉพาะในมาตรฐานเก่า) จึงกลายเป็นจุดอ่อนที่ผู้โจมตีสามารถนำไปใช้ เช่น การปลอม beacon หรือส่ง deauth frame เพื่อโจมตีแบบ Evil Twin หรือ DoS ได้
+[62] Beacon Frame เป็นเฟรมย่อยของ Wi-Fi Management Frame ที่ Access Point ส่งออกมาเป็นระยะอย่างสม่ำเสมอ (periodic broadcast) เพื่อประกาศการมีอยู่ของเครือข่ายและให้ข้อมูลพารามิเตอร์ที่จำเป็น เช่น SSID, BSSID, channel, supported data rates และรูปแบบความปลอดภัย (security capabilities) โดย client จะใช้ข้อมูลจาก beacon ในการค้นหาและตัดสินใจเลือกเชื่อมต่อกับเครือข่าย ตามทฤษฎี beacon เป็นกลไกสำคัญที่ทำให้เครือข่ายไร้สายสามารถถูกค้นพบได้โดยอัตโนมัติ อย่างไรก็ตาม ความที่ beacon ถูก broadcast และมักไม่ถูกเข้ารหัส ทำให้ผู้โจมตีสามารถสร้าง beacon ปลอมเพื่อเลียนแบบเครือข่ายจริง (เช่น Evil Twin) และหลอกให้ผู้ใช้เชื่อมต่อเข้ากับเครือข่ายปลอมได้
+[63] Deauthentication Frame (Deauth) เป็นเฟรมย่อยของ Wi-Fi Management Frame ที่ใช้สำหรับยุติการยืนยันตัวตน (authentication) ระหว่าง client กับ Access Point โดยตรง เมื่อมีการส่งเฟรมนี้ หมายความว่าความสัมพันธ์ด้านความปลอดภัยถูกตัดขาดทันที ทำให้ client ต้องเริ่มกระบวนการเชื่อมต่อใหม่ทั้งหมด (ตั้งแต่ authentication และ association) ตามทฤษฎีแล้ว AP จะส่ง deauth เมื่อพบพฤติกรรมผิดปกติ เช่น session หมดอายุ หรือมีปัญหาด้านความปลอดภัย อย่างไรก็ตาม เนื่องจากในหลายกรณีเฟรมนี้ไม่ได้ถูกป้องกันอย่างเข้มงวด ผู้โจมตีสามารถปลอมแปลง deauth frame เพื่อบังคับให้ client หลุดจากเครือข่าย (deauthentication attack) ซึ่งมักถูกใช้เป็นขั้นตอนหนึ่งของการโจมตีแบบ Evil Twin หรือ Denial of Service (DoS)
+[64] Probe frame เป็นเฟรมย่อยของ Wi-Fi Management Frame ที่เกี่ยวข้องกับกระบวนการ “ค้นหาเครือข่าย” (network discovery) โดย client จะส่ง Probe Request เพื่อถามหาเครือข่ายที่ต้องการ (อาจระบุ SSID เฉพาะ หรือ broadcast เพื่อถามทุกเครือข่าย) และ Access Point ที่ตรงเงื่อนไขจะตอบกลับด้วย Probe Response ซึ่งมีข้อมูลลักษณะเดียวกับ beacon เช่น SSID, channel, security และ capability ต่าง ๆ ตามทฤษฎี กลไกนี้ช่วยให้ client สามารถค้นหาเครือข่ายได้รวดเร็วกว่าแบบ passive (ฟัง beacon อย่างเดียว) อย่างไรก็ตาม probe frame ก็เป็นช่องทางโจมตีได้ เช่นใน KARMA attack ที่ attacker ดัก probe request แล้วตอบกลับปลอมเพื่อหลอกให้ client เชื่อว่าเครือข่ายที่ต้องการมีอยู่จริง
+[65] Association frame เป็นเฟรมที่ใช้ในขั้นตอน “การเข้าร่วมเครือข่าย” หลังจาก client ผ่าน authentication แล้ว โดย client จะส่ง Association Request ไปยัง Access Point เพื่อขอเชื่อมต่ออย่างเป็นทางการ พร้อมระบุความสามารถของตนเอง (เช่น supported data rate, capability) และ AP จะตอบกลับด้วย Association Response เพื่อยืนยันหรือปฏิเสธการเชื่อมต่อ หากสำเร็จ client จะได้รับ Association ID (AID) และสามารถเริ่มรับ-ส่งข้อมูลในเครือข่ายได้ ตามทฤษฎี ขั้นตอนนี้เป็นจุดที่กำหนดความสัมพันธ์เชิงโครงสร้างระหว่าง client กับ AP และเป็นเงื่อนไขสำคัญก่อนเข้าสู่ data communication จริง ๆ นอกจากนี้ หาก attacker แทรกแซงในขั้นตอนนี้ (เช่น ผ่าน Evil Twin) ก็สามารถทำให้ client ไปเชื่อมกับ AP ปลอมแทนของจริงได้
+[66] Ubuntu
+[67] รูปที่ 2 ระบบปฏิบัติการ Ubuntu
+[68] https://www.maketecheasier.com/what-is-ubuntu/
+[69] เป็นระบบปฏิบัติการโอเพนซอร์สที่พัฒนาบน Linux ซึ่งถูกออกแบบมาให้มีความเสถียรและเหมาะกับทั้งผู้ใช้ทั่วไปและงานด้านเทคนิคขั้นสูง โดยเฉพาะในงานด้านเครือข่ายและความปลอดภัยไซเบอร์ Ubuntu รองรับการเข้าถึงระดับ low-level ของระบบ เช่น การตั้งค่า network interface และการใช้งานโหมด monitor ของ Wi-Fi card ได้อย่างมีประสิทธิภาพ นอกจากนี้ยังมี package และเครื่องมือด้าน security ให้เลือกใช้อย่างหลากหลาย เช่น aircrack-ng, Kismet และ Wireshark จึงมักถูกใช้เป็นแพลตฟอร์มหลักสำหรับการทดลองหรือพัฒนาระบบตรวจจับ Evil Twin และ Rogue Access Point ในเชิงทฤษฎี Ubuntu ทำหน้าที่เป็น environment กลางที่รวมทั้งการเก็บข้อมูล วิเคราะห์ และประมวลผลไว้ในระบบเดียว
+[70] Kismet
+[71] รูปที่ 3 UI ของ Kismet
+[72] https://www.kismetwireless.net/docs/readme/intro/kismet/
+[73] เป็นเครื่องมือสำหรับตรวจจับเครือข่ายไร้สายแบบ passive ที่สามารถดักจับ traffic โดยไม่ต้องเชื่อมต่อกับ Access Point จริง ๆ ตัวเครื่องมือสามารถรวบรวมข้อมูลสำคัญจาก management frame เช่น beacon, probe และ deauthentication เพื่อนำมาวิเคราะห์พฤติกรรมของเครือข่าย ในเชิงทฤษฎี Kismet มีบทบาทสำคัญในขั้นตอน “data collection” ของระบบตรวจจับ Evil Twin เพราะสามารถสร้างฐานข้อมูลของ SSID, BSSID, channel และ capability ต่าง ๆ ได้แบบเรียลไทม์ อีกทั้งยังสามารถตรวจจับ anomaly เช่น AP ที่มีชื่อซ้ำหรือพฤติกรรมผิดปกติ ทำให้เหมาะสำหรับใช้เป็น sensor ในระบบ intrusion detection ของ Wi-Fi
+[74] Wireshark 
+[75] รูปที่ 4 Wireshark 
+[76] https://mawgoud.medium.com/wireshark-101-finding-passwords-credentials-in-plain-text-traffic-0ec04ab0e014
+[77] เป็นเครื่องมือวิเคราะห์ packet ที่มีความสามารถในการเจาะลึกถึงระดับโปรโตคอลต่าง ๆ รวมถึง IEEE 802.11 โดยสามารถแสดงรายละเอียดของเฟรมแต่ละชนิด เช่น field ภายใน beacon frame, probe response หรือ deauth frame ได้อย่างครบถ้วน ในเชิงทฤษฎี Wireshark ถูกใช้ในขั้นตอน “analysis และ validation” เพื่อยืนยันพฤติกรรมที่ตรวจพบจากเครื่องมืออื่น เช่น Kismet นักวิเคราะห์สามารถใช้ Wireshark เพื่อตรวจสอบ sequence number, timestamp หรือ parameter deviation ซึ่งเป็นตัวชี้วัดสำคัญในการแยกแยะ AP จริงกับ Evil Twin ได้
+[78] SQLite 
+[79] รูปที่ 5 SQLite
+[80] https://www.ovhcloud.com/asia/learn/what-is-SQLite/
+[81] ระบบจัดการฐานข้อมูลเชิงสัมพันธ์ที่ใช้สำหรับจัดเก็บข้อมูลอย่างเป็นโครงสร้างโดยตรงจากข้อมูล Kismet  ได้แก่ AP fingerprint (SSID, BSSID, Channel, RSSI, Security Type, OUI, Timestamp) สำหรับ Forensic Analysis ย้อนหลัง
+[82] MiniLM 
+[83] เป็นโมเดลภาษาขนาดเล็กในตระกูล Transformer ที่ถูกออกแบบให้มีประสิทธิภาพสูงแต่ใช้ทรัพยากรต่ำ เหมาะสำหรับงานที่ต้องการความเร็วและประหยัดพลังงาน เช่น บนอุปกรณ์ edge หรือ client-side detection ในเชิงทฤษฎี MiniLM สามารถนำมาใช้ในขั้นตอน “intelligent analysis” เช่น การตรวจจับความคล้ายคลึงของชื่อ SSID (semantic similarity) เพื่อระบุความเป็นไปได้ของ Evil Twin ที่ใช้ชื่อหลอกเลียนแบบ เช่น “CoffeeWiFi” กับ “C0ffeeWiFi” หรือ “FreeAirportWiFi” กับ “Airport_FreeWiFi” การใช้โมเดลลักษณะนี้ช่วยเสริม rule-based detection ให้มีความยืดหยุ่นและครอบคลุมกรณีที่ซับซ้อนมากขึ้น
+[84] ขั้นตอนการทดลอง: ระบบตรวจจับ Evil Twin
+[85] รูปที่ 6 ระบบตรวจจับ Evil Twin
+[86] ภาพรวมระบบ
+[87] ระบบแบ่งออกเป็น 2 สาขาหลัก ที่ทำงานควบคู่กัน ได้แก่ สาขาวิเคราะห์พฤติกรรม (Behavioural Analysis Branch) และสาขาวิเคราะห์ Beacon Frame (Beacon Frame Analysis Branch)
+[88] ขั้นตอนการทดลอง: ระบบตรวจจับ Evil Twin
+[89] เริ่มต้นระบบ (Start) 
+[90] เปิดใช้งานระบบตรวจจับ Evil Twin
+[91] ระบบเข้าสู่โหมดอ่านค่า SSID โดยอัตโนมัติ
+[92] อ่านค่า SSID (Read SSID) 
+[93] ระบบสแกนและอ่านชื่อ SSID ของ Access Point (AP) ที่พบในบริเวณใกล้เคียง
+[94] ถ้าไม่พบ SSID → ระบบสิ้นสุดการทำงาน (End)
+[95] ถ้าพบ SSID → ดำเนินการขั้นตอนที่ 3
+[96] ตรวจสอบกรณีพิเศษ MAC / SSID match
+[97] MAC match ค่อนข้างมั่นใจว่ามี Evil twin แน่นอน ตรวจสอบ whitelist signature เทียบกับที่พบหากไม่ตรง จะแจ้งเตือน security alert
+[98] SSID match ตรวจสอบ whitelist signature ของ whitelist signature ในระยะเทียบกับที่พบหากไม่ตรง จะแจ้งเตือน security alert
+[99] กรองด้วย Whitelist และ Fuzzy Match 
+[100] นำ SSID ที่อ่านได้เปรียบเทียบกับรายการ Whitelist ที่กำหนดไว้
+[101] ใช้เทคนิค Edit Distance และ Homoglyph Detection เพื่อคัดกรองเบื้องต้นก่อนการวิเคราะห์เชิงความหมาย
+[102] วิเคราะห์เชิงความหมายด้วย Neural Language Model 
+[103] ใช้โมเดล miniLM และ Cosine Similarity วิเคราะห์ความหมายและเจตนาของชื่อ SSID
+[104] ประเมินว่า SSID มีลักษณะน่าสงสัยหรือไม่
+[105] ตัดสินใจ — ชื่อน่าสงสัยหรือไม่? (Suspicious Name?) 
+[106] ถ้าไม่น่าสงสัย → บันทึกข้อมูลสั้น (Brief Logging) แล้วกลับไปที่ข้อ 2
+[107] ถ้าน่าสงสัย → เข้าสู่การวิเคราะห์แบบคู่ขนาน (ข้อ 7 และ 8)
+[108] สาขาวิเคราะห์พฤติกรรม (Behavioral Analysis Branch) 
+[109] ฟังสัญญาณผิดปกติ โดยตรวจสอบเหตุการณ์ต่อไปนี้ 
+[110] Deauth Storm — การส่ง Deauthentication จำนวนมากผิดปกติ
+[111] BSSID Collision — การชนกันของ BSSID
+[112] AP First-Seen Age — อายุการปรากฏตัวครั้งแรกของ AP
+[113] บันทึกพฤติกรรม (Logging Behaviour) เพื่อสนับสนุนการวิเคราะห์ Beacon Frame ในข้อ 8
+[114] สาขาวิเคราะห์ Beacon Frame (Beacon Frame Analysis Branch) 
+[115] ตรวจสอบ RSSI ด้านความผันผวนของช่วงสัญญาณ (RSSI Range Volatility) 
+[116] ถ้า RSSI ผันผวนสูง → ดำเนินการต่อที่ข้อ 8.2
+[117] ถ้า RSSI ไม่ผันผวน → เข้าสู่โหมด Monitor Infrequently แล้วกลับไปที่ข้อ 2
+[118] ตรวจสอบ RSSI ด้านความแรงของสัญญาณ (RSSI is strong?) 
+[119] ถ้าสัญญาณแรง → ดำเนินการต่อที่ข้อ 8.3
+[120] ถ้าสัญญาณอ่อน → เข้าสู่โหมด Monitor Infrequently แล้วกลับไปที่ข้อ 2
+[121] บันทึก Beacon Frame (Logging Beacon Frame) โดยจัดเก็บข้อมูล Frame แบบสมบูรณ์ (Store Full Frame Data)
+[122] วิเคราะห์ Beacon Frame โดยตรวจสอบพารามิเตอร์ต่อไปนี้ 
+[123] Info Mismatch — ข้อมูลใน Frame ไม่ตรงกัน
+[124] Timing Jitter — ความไม่สม่ำเสมอของเวลา
+[125] Sequence Anomaly — ความผิดปกติของลำดับ Sequence
+[126] Channel Match — การตรงกันของช่องสัญญาณ
+[127] คำนวณคะแนนความเสี่ยง (Risk Scoring) 
+[128] รวมผลจากทั้งสองสาขา (ข้อ 7 และ 8) คำนวณระดับความเสี่ยงเป็น 3 ระดับ ได้แก่ Low / Medium / High
+[129] ดำเนินการตามระดับความเสี่ยง 
+[130] Low → Watchlist — ติดตามต่อเนื่อง ไม่แจ้งเตือน
+[131] Medium → Active Alert — ส่งข้อความแจ้งเตือนทันทีไปยังแอปพลิเคชัน
+[132] High → Security Alert — แจ้งเตือนและตัด AP ออกจากเครือข่ายโดยอัตโนมัติ
+[133] วนซ้ำ (Loop) 
+[134] หลังดำเนินการแล้ว ระบบกลับไปที่ข้อ 2 เพื่ออ่าน SSID ใหม่และตรวจสอบต่อเนื่อง
+[135] ประโยชน์ที่คาดว่าจะได้รับ
+[136] ประโยชน์ต่อองค์กร:
+[137] เพิ่มความปลอดภัยของเครือข่าย 
+[138] ลดความเสี่ยงด้านข้อมูล 
+[139] ปกป้องข้อมูลสำคัญขององค์กร
+[140] ป้องกันการรั่วไหลของข้อมูลส่วนบุคคล (PDPA Compliance)
+[141] ใช้อุปกรณ์ที่มีราคาไม่แพง เทียบกับโซลูชันเชิงพาณิชย์
+[142] มี Dashboard แสดงสถานะแบบเรียลไทม์
+[143] ประโยชน์ต่อผู้ใช้งาน:
+[144] ความอุ่นใจในการใช้งาน 
+[145] มั่นใจว่าเชื่อมต่อกับ Wi-Fi ที่ปลอดภัย
+[146] ข้อมูลส่วนตัวได้รับการปกป้อง
+[147] ประโยชน์ทางวิชาการ:
+[148] องค์ความรู้ด้านความปลอดภัย 
+[149] เข้าใจหลักการทำงานของ Wireless Security
+[150] ศึกษาเทคนิคการโจมตีและการป้องกัน
+[151] ฝึกการออกแบบและพัฒนา Security System
+[152] ฝึกการทำงานกับ Hardware และ Software Integration
+[153] งานวิจัยหรือโครงงานอื่นที่เกี่ยวข้อง
+[154] "การพัฒนาระบบตรวจจับ Rogue Access Point ด้วย Raspberry Pi" - วารสารวิชาการ มหาวิทยาลัยเทคโนโลยี     ราชมงคล
+[155] Aircrack-ng และ Python
+[156] Client-side Evil-Twin access point detection using beacon-frame delay and wireless network parameter deviation (MSc research project, National College of Ireland).
+[157] Software และ Hardware ที่ใช้ในการทดลอง
+[158] การทำงานของ ระบบ wifi
+[159] Detection of wireless fake access points. ICUMT
+[160] วิธีการ เครื่องมือ และ ประสิทธิภาพในการตรวจจับ Rogue AP 
+[161] Rogue access point detection methods. ICICES
+[162] วิธีการ เครื่องมือ และ ประสิทธิภาพในการตรวจจับ Rogue AP ฝั่ง client และ server
+[163] หนังสือและเอกสารที่ใช้ค้นคว้าและอ้างอิง
+[164] สมชาย นำประเสริฐชัย. (n.d.). ความปลอดภัยเครือข่ายคอมพิวเตอร์. ซีเอ็ดยูเคชั่น.
+[165] วิวัฒน์ วัฒนาวุฒิพงศ์. (n.d.). เครือข่ายไร้สายและความปลอดภัย.
+[166] Wrightson, T. (2012). Wireless network security: A beginner’s guide. McGraw-Hill Education.
+[167] Cache, J., Wright, J., & Liu, V. (2010). Hacking exposed wireless (3rd ed.). McGraw-Hill Education.
+[168] IEEE. (n.d.). IEEE 802.11 wireless LAN standards. https://www.ieee802.org/11/
+[169] National Institute of Standards and Technology. (2012). Guidelines for securing wireless local area networks (WLANs) (NIST Special Publication 800-153). https://csrc.nist.gov/publications/detail/sp/800-153/final
+[170] OWASP Foundation. (n.d.). OWASP wireless security project. https://owasp.org/www-project-wireless-security/
+[171] Wakhloo, A. (2023). Client-side Evil-Twin access point detection using beacon-frame delay and wireless network parameter deviation (MSc research project, National College of Ireland).
+[172] Lovinger, N., Gerlich, T., Martinasek, Z., & Malina, L. (2020). Detection of wireless fake access points. In 2020 12th International Congress on Ultra Modern Telecommunications and Control Systems and Workshops (ICUMT) (pp. 113–120). IEEE.
+[173] Anmulwar, S., Srivastava, S., Mahajan, S. P., Gupta, A. K., & Kumar, V. (2014). Rogue access point detection methods: A review. In Proceedings of the International Conference on Information Communication and Embedded Systems (ICICES 2014). IEEE.

@@ -1,0 +1,9 @@
+FROM alpine:latest
+ENV PYTHONUNBUFFERED=1
+
+RUN apk add --no-cache python3 scapy
+
+WORKDIR /app
+COPY wifi_frame_generator.py /app/wifi_frame_generator.py
+
+ENTRYPOINT ["python3", "/app/wifi_frame_generator.py"]
