@@ -289,9 +289,21 @@ To generate datasets compatible with the framework test engine, use the followin
 
 ---
 
-## 5. Ready-to-Use LLM Generation Prompt Template
+## 5. Ready-to-Use LLM Generation Prompt Templates
 
-Copy and paste the template below into any LLM (e.g., Gemini, Claude, GPT) to generate new, strictly conforming test cases:
+Generating high-volume datasets (such as **50 samples per category across all 13 categories = 650 total samples**) requires distinct prompting strategies to avoid model output token truncation and repetitive pattern decay.
+
+```mermaid
+flowchart TD
+    Choice{"Generation Volume"}
+    Choice -->|Small Batch (N <= 30)| P1["Template 5.1: Multi-Category General Prompt\n(Quick balanced sampling across all categories)"]
+    Choice -->|High-Volume (50 per Category = 650 Total)| P2["Template 5.2: Per-Category High-Volume Batch Prompt\n(50 diverse samples for ONE category at a time)"]
+```
+
+---
+
+### 5.1 Multi-Category General Prompt (Small Batches: $N \le 30$)
+Use this template for generating a rapid, balanced cross-section across all 13 categories in a single LLM request:
 
 ```text
 You are an expert wireless network security test generator.
@@ -322,52 +334,191 @@ Output strictly valid JSON with keys:
 
 ---
 
+### 5.2 Per-Category High-Volume Batch Prompt (50 Samples per Category)
+
+> [!IMPORTANT]
+> **Why Per-Category Prompting is Required for 50 Samples:**  
+> Asking an LLM to generate 650 JSON objects ($50 \times 13$) in a single call requires over 35,000 output tokens, exceeding the 4,096–8,192 token limit of modern LLM APIs and causing incomplete, truncated responses. Prompting **50 samples for ONE category at a time** consumes ~2,500 tokens, guaranteeing 100% completion, structural integrity, and rich diversity.
+
+Copy and run this template once for each category (replacing `[CATEGORY_NAME]` with one of the 13 canonical IDs):
+
+```text
+You are an expert wireless network security test generator.
+Generate exactly 50 UNIQUE, DIVERSE synthetic IEEE 802.11 SSID test cases strictly belonging to the single category:
+Category: [CATEGORY_NAME]
+Authorized Whitelist Baseline: ["AcmeCorp Secure", "AcmeCorp Staff", "AcmeCorp Guest", "Siam Wifi", "SiamXP Wifi", "University Campus 5G", "eduroam"]
+
+Follow these strict diversity and generation guidelines:
+1. Target Distribution: Evenly distribute the 50 cases across all authorized targets (approx. 7-10 test cases per target network).
+2. Diversity Requirements for [CATEGORY_NAME]:
+   - Vary character positions: apply modifications to the first token, middle token, and trailing tokens.
+   - Vary mutation types specific to this category (see Section 2 specifications).
+   - Ensure all 50 samples are distinct; do not repeat identical payloads with trivial variations.
+3. Single-Variable Rule: Modify strictly ONE feature relevant to [CATEGORY_NAME]. Do NOT introduce accidental compound errors (e.g. do not add underscores in homoglyph tests unless testing 05_delimiter_case or 13_combined_adversarial_tricks).
+4. IEEE 802.11 Compliance: Ensure all strings encode to <= 32 UTF-8 bytes (except for oversized test cases in 12_byte_level_breakage).
+5. Ground Truth Label: Set accurately according to Section 2 specifications (BENIGN, EVIL_TWIN, or MALFORMED).
+
+Output strictly a valid JSON array of 50 objects with these exact keys:
+[
+  {
+    "observed_ssid": "...",
+    "target_authorized_ssid": "...",
+    "category": "[CATEGORY_NAME]",
+    "macro_category": "...",
+    "ground_truth_label": "...",
+    "description": "..."
+  }
+]
+```
+
+---
+
 ## 6. Operational Instructions: Step-by-Step Dataset Generation Workflow
 
-Follow these steps to generate, validate, and evaluate new synthetic test suites using this specification:
+Follow these steps to generate, assemble, validate, and benchmark a complete 650-sample dataset (50 samples $\times$ 13 categories):
 
 ```mermaid
-flowchart LR
-    Step1["1. Set Whitelist & Target Domain"] --> Step2["2. Choose Category Quotas"]
-    Step2 --> Step3["3. Run LLM Prompt"]
-    Step3 --> Step4["4. Validate JSON & 802.11 Spec"]
-    Step4 --> Step5["5. Benchmark & Evaluate"]
+flowchart TD
+    S1["Step 1: Set Whitelist Baseline\n(Enterprise, Campus, Hospitality)"] --> S2["Step 2: Generate 50 Samples per Category\n(13 Batches using Template 5.2 or Python Script)"]
+    S2 --> S3["Step 3: Merge into Master JSON\n(test_cases_650.json)"]
+    S3 --> S4["Step 4: Quality Control & Spec Validation\n(<=32 bytes, Single-Variable, Schema)"]
+    S4 --> S5["Step 5: Run Benchmark & Model Evaluation\n(benchmark.py & run_extended_200_benchmark.py)"]
 ```
 
 ### Step 1: Select Target Environment & Whitelist
-1. Choose the target organization domain:
-   * **Enterprise Corporate:** `["AcmeCorp Secure", "AcmeCorp Staff", "AcmeCorp Guest"]`
-   * **Hospitality / Hotel:** `["Hilton Honors WiFi", "Hilton Guest", "Hilton Conference"]`
-   * **Airport / Transport:** `["Airport Free WiFi", "Airport Passenger 5G", "SkyLounge VIP"]`
-   * **Academic / University:** `["Siam Wifi", "SiamXP Wifi", "University Campus 5G", "eduroam"]`
-2. Ensure all authorized targets use standard real-world space delimiters (`" "`) and TitleCase capitalization.
+Choose and document your primary authorized baseline names. Ensure all targets use natural space delimiters (`" "`):
+* **Siam University / Regional:** `["Siam Wifi", "SiamXP Wifi", "SIAM WIFI", "SIAM XP WIFI", "eduroam"]`
+* **Enterprise Corporate:** `["AcmeCorp Secure", "AcmeCorp Staff", "AcmeCorp Guest"]`
+* **Hospitality / Hotel:** `["Hilton Honors WiFi", "Hilton Guest", "Hilton Executive"]`
 
-### Step 2: Configure Category Quotas
-Determine the sample size ($N$) and distribution based on your evaluation goal:
-* **Balanced Verification Suite ($N = 130$):** Exactly 10 samples per category across all 13 categories.
-* **Realistic Airspace Simulation ($N = 100$):**
-  * 10% `01_authorized_exact` (Normal baseline traffic)
-  * 30% `07_irrelevant_noise` (Surrounding retail, cafes, and residential routers)
-  * 10% `06_semantic_relevant` (Affiliated sister branches and departmental subnets)
-  * 40% `02_homoglyph_typo` through `05_delimiter_case` (Common phishing and lures)
-  * 10% `08_cross_script_homoglyphs` through `13_combined` (Advanced adversarial evasion)
+---
 
-### Step 3: Run the LLM Prompt
-1. Copy the prompt template from **Section 5**.
-2. Replace `[N]` with your target count and update the `Authorized Baseline` array with your Step 1 whitelist.
-3. Configure your LLM inference parameters:
-   * **Temperature:** `0.2` to `0.4` (Low temperature ensures strict adherence to single-variable mutation rules and valid JSON formatting).
-   * **System Prompt:** Set system role to `"Senior Wireless Network Security Auditor"`.
+### Step 2: Generate 50 Samples per Category (The 13-Batch Process)
+
+To achieve maximum diversity across the 50 samples in each category, follow these specific distribution targets:
+
+| Category ID | Ground Truth | Diversity Strategy for 50 Samples |
+| :--- | :---: | :--- |
+| **`01_authorized_exact`** | `BENIGN` | 50 legitimate production SSIDs: Vary departmental units, buildings, and campus branches (`Siam Wifi`, `Siam Engineering 5G`, `AcmeCorp Executive`, `AcmeCorp Finance`, etc.). |
+| **`02_homoglyph_typo`** | `EVIL_TWIN` | 15 Leetspeak (`1/i`, `0/o`), 15 Leetspeak (`5/s`, `3/e`), 10 Kerning (`rn/m`, `vv/w`), 10 Adjacent Transpositions (`Studnet`, `Campup`). |
+| **`03_word_addition`** | `EVIL_TWIN` | 15 Pretext lures (`Free`, `Official`, `Public`), 15 Auth lures (`Login`, `Portal`, `Register`), 10 Speed/Band lures (`Fast`, `5G`, `AutoConnect`), 10 Prefix vs Suffix balance. |
+| **`04_word_subtraction`**| `EVIL_TWIN` | 20 Technology suffix drops (`_5G`, `_WiFi`), 15 Department qualifier drops (`_Secure`, `_Portal`), 15 Single-word root identity clones (`Siam`, `AcmeCorp`, `University`). |
+| **`05_delimiter_case`** | `EVIL_TWIN` | 10 Underscore replacements (`_`), 10 Hyphen replacements (`-`), 10 Dot replacements (`.`), 10 Multiple space injections (`  `), 10 Case mutations (`ALL CAPS`, `all lowercase`). |
+| **`06_semantic_relevant`**| Context | 25 Legitimate sister units (`Siam Engineering WiFi`, `Acme Logistics Net` $\to$ `BENIGN`), 25 Deceptive unaffiliated clones (`College Campus Net`, `Academic WiFi` $\to$ `EVIL_TWIN`). |
+| **`07_irrelevant_noise`**| `BENIGN` | 20 Commercial cafes & restaurants (`Starbucks`, `Cafe Amazon`), 15 Telecom hotspots (`AIS SUPER WiFi`, `true_wifi`), 15 Residential routers (`DIRECT-HP`, `TP-Link_5G`). |
+| **`08_cross_script_homoglyphs`**| `EVIL_TWIN` | 25 Cyrillic substitutions (`\u0435` for `e`, `\u0430` for `a`, `\u0456` for `i`, `\u0425` for `X`), 25 Greek substitutions (`\u03BF` for `o`, `\u03B1` for `a`, `\u03B9` for `i`). |
+| **`09_invisible_and_whitespace`**| `EVIL_TWIN` | 15 Zero-Width Spaces (`\u200B`), 10 Byte Order Marks (`\uFEFF`), 15 Non-Breaking Spaces (`\u00A0`), 10 Trailing ASCII spaces (` `). |
+| **`10_normalization_accents`**| `EVIL_TWIN` | 25 Fullwidth Latin (`\uFF33` `Ｓ`, `\uFF35` `Ｕ`), 25 Decomposed Combining Diacritics (`e` + `\u0301` acute, `a` + `\u0300` grave). |
+| **`11_emoji_and_non_latin`**| Context | 25 Brand + Signal Emojis (`Siam Wifi📶`, `AcmeCorp🔒` $\to$ `EVIL_TWIN`), 25 Pure Native Scripts (Thai `บ้านสุข`, `มหาวิทยาลัย` $\to$ `BENIGN`). |
+| **`12_byte_level_breakage`**| Context | 15 Oversized frames ($33\text{--}40$ octets $\to$ `MALFORMED`), 15 RFC 3629 Overlong UTF-8 (`\xC1\xA1`), 10 Truncated UTF-8 (`\xE0\xB8`), 10 Hidden APs (0 octets $\to$ `BENIGN_HIDDEN`). |
+| **`13_combined_adversarial_tricks`**| `EVIL_TWIN` | 50 Stacked Multi-Layer Evasions: Combining Lure + Homoglyph + Delimiter + Unicode (e.g. `Free_S1am_Wifi`, `\u200BＳіam Wifi📶 `). |
+
+---
+
+### Step 3: Automated Python Batch Generation Script
+
+Instead of manually running 13 prompts in a chat window, save and run this automated Python script to generate all 650 samples in sequence using any OpenAI-compatible endpoint (LM Studio on port 1234, Ollama, or OpenAI/Gemini/Anthropic API):
+
+```python
+#!/usr/bin/env python3
+"""
+Automated 650-Sample Dataset Generator (50 Samples x 13 Categories)
+Iterates through all 13 Master Taxonomy categories and merges into test_cases_650.json.
+"""
+
+import json
+import re
+import requests
+import sys
+
+API_URL = "http://localhost:1234/v1/chat/completions"  # Local LM Studio / vLLM / Ollama
+MODEL_NAME = "local-model"  # or "gpt-4o", "gemini-1.5-pro", "claude-3-5-sonnet"
+
+CATEGORIES = [
+    "01_authorized_exact",
+    "02_homoglyph_typo",
+    "03_word_addition",
+    "04_word_subtraction",
+    "05_delimiter_case",
+    "06_semantic_relevant",
+    "07_irrelevant_noise",
+    "08_cross_script_homoglyphs",
+    "09_invisible_and_whitespace",
+    "10_normalization_accents",
+    "11_emoji_and_non_latin",
+    "12_byte_level_breakage",
+    "13_combined_adversarial_tricks"
+]
+
+WHITELIST = ["AcmeCorp Secure", "AcmeCorp Guest", "Siam Wifi", "SiamXP Wifi", "eduroam"]
+
+def generate_category_batch(category_name, count=50):
+    prompt = f"""
+You are a senior wireless security researcher.
+Generate exactly {count} distinct JSON objects for IEEE 802.11 SSID test cases strictly belonging to:
+Category: {category_name}
+Target Whitelist: {json.dumps(WHITELIST)}
+
+Rules:
+1. Apply the Single-Variable Mutation Principle (strictly modify 1 feature unless category is 13_combined_adversarial_tricks).
+2. Distribute targets evenly across the whitelist.
+3. Ensure high diversity across all {count} samples.
+4. Output strictly a valid JSON array of {count} objects with keys:
+"observed_ssid", "target_authorized_ssid", "category", "macro_category", "ground_truth_label", "description"
+"""
+    response = requests.post(
+        API_URL,
+        json={
+            "model": MODEL_NAME,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.3,
+            "max_tokens": 4000
+        },
+        timeout=120
+    )
+    raw_text = response.json()["choices"][0]["message"]["content"]
+    # Extract JSON array
+    json_match = re.search(r"\[\s*\{.*\}\s*\]", raw_text, re.DOTALL)
+    if json_match:
+        return json.loads(json_match.group(0))
+    return json.loads(raw_text)
+
+def main():
+    master_dataset = []
+    print(f"[*] Starting high-volume generation: 50 samples x 13 categories = 650 total")
+    
+    for cat in CATEGORIES:
+        print(f"    -> Generating 50 samples for {cat}...")
+        try:
+            items = generate_category_batch(cat, count=50)
+            master_dataset.extend(items)
+            print(f"       [OK] Generated {len(items)} samples.")
+        except Exception as e:
+            print(f"       [!] Error on {cat}: {e}")
+            
+    out_file = "test_cases_650.json"
+    with open(out_file, "w", encoding="utf-8") as f:
+        json.dump(master_dataset, f, indent=2, ensure_ascii=False)
+    print(f"\n[+] Successfully generated master dataset with {len(master_dataset)} samples: {out_file}")
+
+if __name__ == "__main__":
+    main()
+```
+
+---
 
 ### Step 4: Quality Control & Validation Checklist
 Before feeding the generated JSON into intrusion detection models, run the following automated checks:
+* [ ] **Sample Count Check:** Verify that exactly $50 \times 13 = 650$ objects are present (`len(data) == 650`).
 * [ ] **Byte Length Check:** Verify `len(observed_ssid.encode('utf-8')) <= 32`. Any sample $> 32$ bytes must strictly belong to `12_byte_level_breakage`.
 * [ ] **Single-Variable Rule:** Ensure non-Category 13 samples do not combine tricks (e.g. verify a `02_homoglyph_typo` sample does not also introduce an underscore delimiter).
-* [ ] **JSON Syntax:** Parse with `json.loads(output)` to confirm formatting and required keys: `observed_ssid`, `target_authorized_ssid`, `category`, `macro_category`, `ground_truth_label`, `description`.
+* [ ] **JSON Syntax & Keys:** Confirm every record contains all 6 required fields: `observed_ssid`, `target_authorized_ssid`, `category`, `macro_category`, `ground_truth_label`, `description`.
+
+---
 
 ### Step 5: Execute Automated Benchmark Evaluation
 Run the generated test cases against the framework detection engines:
-1. Save the validated JSON to a file (e.g., `ssid_feature_framework/my_custom_test_cases.json`).
+1. Save the validated JSON to a file: `ssid_feature_framework/test_cases_650.json`.
 2. Run the unit test sanitization suite:
    ```powershell
    py ssid_feature_framework/adversarial_cases_research/test_defensive_sanitizer.py
@@ -379,4 +530,4 @@ Run the generated test cases against the framework detection engines:
 4. Verify classifier output:
    * **Expected Detection Recall:** $\ge 98.0\%$ on evil twin categories.
    * **Expected Precision:** $\ge 95.0\%$ on benign noise discard.
-   * **Sanitization Latency:** $< 0.05\text{ ms}$ per frame.
+   * **Sanitization Latency:** $< 0.05\text{ ms}$ per frame on CPU.
