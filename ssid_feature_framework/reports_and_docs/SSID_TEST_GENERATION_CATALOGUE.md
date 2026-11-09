@@ -16,7 +16,7 @@ $$\text{SSID} = [\text{Brand/Organization}] + [\text{Department/Audience}] + [\t
 ### 1.2 The Single-Variable Mutation Principle
 When generating test cases to evaluate detection classifiers:
 * **Single-Variable Rule:** Each test case must modify strictly one linguistic or structural feature (e.g., character substitution alone, delimiter mutation alone, or lure addition alone).
-* **Isolation Constraint:** Do not combine multiple techniques (e.g., leetspeak substitution + space replacement with underscore) unless explicitly generating for **Category 13 (Stacked Multi-Layer Evasions)**. Unintended multi-vector combinations skew classifier feature separation.
+* **Isolation Constraint:** Do not combine multiple techniques (e.g., leetspeak substitution + space replacement with underscore) unless explicitly generating for **Category 13 (combined_adversarial_tricks)**. Unintended multi-vector combinations skew classifier feature separation.
 
 ---
 
@@ -25,25 +25,25 @@ When generating test cases to evaluate detection classifiers:
 ```mermaid
 flowchart TD
     SSID["Input 802.11 SSID Frame"] --> Type{"Frame Validity"}
-    Type -->|Length > 32 or Bad UTF-8| Cat12["12. byte_level_breakage"]
+    Type -->|Length > 32 or Bad UTF-8| Cat12["12_byte_level_breakage"]
     Type -->|Valid Frame| Baseline{"Exact Whitelist Match?"}
     
-    Baseline -->|Exact Byte Match| Cat01["01. authorized_exact (BENIGN)"]
+    Baseline -->|Exact Byte Match| Cat01["01_authorized_exact (BENIGN)"]
     Baseline -->|No Exact Match| Evasion{"Adversarial Encoding?"}
     
-    Evasion -->|Cross-Script Homoglyph| Cat08["08. cross_script_homoglyphs"]
-    Evasion -->|Non-Printable / Whitespace| Cat09["09. invisible_and_whitespace"]
-    Evasion -->|Fullwidth / Accents| Cat10["10. normalization_accents"]
-    Evasion -->|Emoji / Non-Latin| Cat11["11. emoji_and_non_latin"]
-    Evasion -->|Stacked Exploits| Cat13["13. combined_adversarial_tricks"]
+    Evasion -->|Cross-Script Homoglyph| Cat08["08_cross_script_homoglyphs"]
+    Evasion -->|Non-Printable / Whitespace| Cat09["09_invisible_and_whitespace"]
+    Evasion -->|Fullwidth / Accents| Cat10["10_normalization_accents"]
+    Evasion -->|Emoji / Non-Latin| Cat11["11_emoji_and_non_latin"]
+    Evasion -->|Stacked Exploits| Cat13["13_combined_adversarial_tricks"]
     
     Evasion -->|Standard ASCII Mutation| Ortho{"Structural Mutation Type"}
-    Ortho -->|Character Swaps / Leetspeak| Cat02["02. homoglyph_typo"]
-    Ortho -->|Lure Added (Free/Login)| Cat03["03. word_addition"]
-    Ortho -->|Token Truncated / Dropped| Cat04["04. word_subtraction"]
-    Ortho -->|Delimiters / Casing Altered| Cat05["05. delimiter_case"]
-    Ortho -->|Related Org / Sister Branch| Cat06["06. semantic_relevant"]
-    Ortho -->|Unrelated Third-Party| Cat07["07. irrelevant_noise"]
+    Ortho -->|Character Swaps / Leetspeak| Cat02["02_homoglyph_typo"]
+    Ortho -->|Lure Added (Free/Login)| Cat03["03_word_addition"]
+    Ortho -->|Token Truncated / Dropped| Cat04["04_word_subtraction"]
+    Ortho -->|Delimiters / Casing Altered| Cat05["05_delimiter_case"]
+    Ortho -->|Related Org / Sister Branch| Cat06["06_semantic_relevant"]
+    Ortho -->|Unrelated Third-Party| Cat07["07_irrelevant_noise"]
 ```
 
 ---
@@ -51,6 +51,7 @@ flowchart TD
 ### Part 1: Baseline Orthographic & Lexical Categories
 
 #### Category 01: `authorized_exact`
+* **Canonical Identifier:** `01_authorized_exact`
 * **Ground Truth:** `BENIGN`
 * **Technical Scope:** Legitimate production network broadcasts matching the organizational whitelist exactly. At the network layer, identical SSID clones deployed by adversaries (Evil Twins) are disambiguated via physical layer telemetry (BSSID MAC OUI, RSSI volatility, 802.1X certificate validation vs. Open Captive Portal).
 * **Generation Rule:** Exactly matches an authorized baseline name without character, delimiter, or casing alterations.
@@ -60,6 +61,7 @@ flowchart TD
   * University: `Siam Wifi`, `SiamXP Wifi`, `University Campus 5G`, `eduroam`
 
 #### Category 02: `homoglyph_typo`
+* **Canonical Identifier:** `02_homoglyph_typo`
 * **Ground Truth:** `EVIL_TWIN`
 * **Technical Scope:** Visual lookalike characters, keystroke transpositions, or typo variations designed to exploit casual human scanning while maintaining high visual similarity.
 * **Generation Rules:**
@@ -81,6 +83,7 @@ flowchart TD
   * University: `S1am Wifi`, `Siam W1f1`, `University Carnpus 5G`, `edur0am`
 
 #### Category 03: `word_addition`
+* **Canonical Identifier:** `03_word_addition`
 * **Ground Truth:** `EVIL_TWIN`
 * **Technical Scope:** Retains the authorized brand identity while appending or prepending deceptive lure words to entice user connection or simulate captive authentication portals.
 * **Generation Rules:**
@@ -97,6 +100,7 @@ flowchart TD
   * University: `Free Siam Wifi`, `Siam Wifi 5G`, `SiamXP Wifi Login`, `University Campus 5G AutoConnect`
 
 #### Category 04: `word_subtraction`
+* **Canonical Identifier:** `04_word_subtraction`
 * **Ground Truth:** `EVIL_TWIN`
 * **Technical Scope:** Truncation of qualifiers, security designations, or frequency band indicators, leaving a shortened root brand name to impersonate umbrella organization authority.
 * **Generation Rules:**
@@ -110,6 +114,7 @@ flowchart TD
   * University: `Siam`, `SiamXP`, `University`, `Campus 5G`
 
 #### Category 05: `delimiter_case`
+* **Canonical Identifier:** `05_delimiter_case`
 * **Ground Truth:** `EVIL_TWIN` *(Except where uppercase is verified official signage)*
 * **Technical Scope:** Alteration of standard word separators or letter casing. Adversaries exploit delimiter alterations to bypass rigid exact-string filters while appearing identical in compact mobile UI pickers.
 * **Generation Rules:**
@@ -128,6 +133,7 @@ flowchart TD
   * University: `Siam_Wifi`, `Siam-Wifi`, `Siam  Wifi`, `Siam XP Wifi`, `EDUROAM`
 
 #### Category 06: `semantic_relevant`
+* **Canonical Identifier:** `06_semantic_relevant`
 * **Ground Truth:** Context-dependent (Legitimate Subnets = `BENIGN`; Unofficial / Rogue Clones = `EVIL_TWIN`)
 * **Technical Scope:** Network names that share semantic, institutional, or departmental context with the target entity, but do not share direct word-level identity.
 * **Generation Rules:**
@@ -142,6 +148,7 @@ flowchart TD
   * University: `Siam University Guest`, `Siam Engineering WiFi`, `College Campus 5G`, `Institute Student WLAN`
 
 #### Category 07: `irrelevant_noise`
+* **Canonical Identifier:** `07_irrelevant_noise`
 * **Ground Truth:** `BENIGN`
 * **Technical Scope:** Environmental ambient wireless networks that operate in the same physical airspace but belong to completely unrelated third parties (retail, telecommunications, residential).
 * **Generation Rules:**
@@ -157,6 +164,7 @@ flowchart TD
 ### Part 2: Advanced Adversarial Evasion Categories
 
 #### Category 08: `cross_script_homoglyphs`
+* **Canonical Identifier:** `08_cross_script_homoglyphs`
 * **Ground Truth:** `EVIL_TWIN`
 * **Technical Scope:** Injection of non-Latin Unicode graphemes (principally Cyrillic and Greek) that possess identical visual glyph rasterization to Latin characters in standard system fonts, bypassing simple ASCII comparisons.
 * **Generation Rules:**
@@ -174,6 +182,7 @@ flowchart TD
   * `edurοam` (`\u03BF` Greek `ο`)
 
 #### Category 09: `invisible_and_whitespace`
+* **Canonical Identifier:** `09_invisible_and_whitespace`
 * **Ground Truth:** `EVIL_TWIN`
 * **Technical Scope:** Insertion of zero-width, non-printable, or non-standard whitespace Unicode codepoints. These render completely invisible to human eyes in UI pickers but alter raw byte sequences.
 * **Generation Rules:**
@@ -189,6 +198,7 @@ flowchart TD
   * `University Campus 5G ` (trailing space)
 
 #### Category 10: `normalization_accents`
+* **Canonical Identifier:** `10_normalization_accents`
 * **Ground Truth:** `EVIL_TWIN`
 * **Technical Scope:** Exploiting Unicode normalization forms (NFC vs. NFD vs. NFKC). Includes fullwidth Latin characters from the East Asian Halfwidth/Fullwidth block and decomposed combining diacritic marks.
 * **Generation Rules:**
@@ -200,6 +210,7 @@ flowchart TD
   * `Síam Wifi` (`i` + `\u0301` combining mark)
 
 #### Category 11: `emoji_and_non_latin`
+* **Canonical Identifier:** `11_emoji_and_non_latin`
 * **Ground Truth:** Context-dependent (Brand + Emoji = `EVIL_TWIN`; Pure Native Script = `BENIGN`)
 * **Technical Scope:** 
   1. Appending signal indicator emojis or visual lures to authorized brands.
@@ -212,6 +223,7 @@ flowchart TD
   * Benign Regional: `บ้านสุข` (Thai: Suk Home), `ร้านกาแฟสด` (Fresh Coffee Shop), `สำนักงานคณบดี` (Dean Office)
 
 #### Category 12: `byte_level_breakage`
+* **Canonical Identifier:** `12_byte_level_breakage`
 * **Ground Truth:** `MALFORMED` / `BENIGN_HIDDEN`
 * **Technical Scope:** Deliberate violations of IEEE 802.11 management frame standards or RFC 3629 UTF-8 encoding rules to trigger parser crashes, buffer overflows, or exceptions.
 * **Generation Rules:**
@@ -225,6 +237,7 @@ flowchart TD
   * Hidden: `""` (0 octets, benign hidden network)
 
 #### Category 13: `combined_adversarial_tricks`
+* **Canonical Identifier:** `13_combined_adversarial_tricks`
 * **Ground Truth:** `EVIL_TWIN`
 * **Technical Scope:** Stacked, multi-layered evasions combining two or more techniques from Categories 02 through 11 in a single broadcast payload.
 * **Generation Rules:** Combine at least two distinct evasion layers:
@@ -240,9 +253,9 @@ flowchart TD
 
 When conducting macro-level evaluations (such as the 210-sample benchmark), the 13 fine-grained categories roll up into 4 high-level evaluation classes:
 
-| Macro Category | Ground Truth | Included Fine-Grained Categories | Primary Target Behavior |
+| Macro Category | Ground Truth | Included Fine-Grained Categories (Canonical Identifiers) | Primary Target Behavior |
 | :--- | :---: | :--- | :--- |
-| **`classical_orthographic_evil_twin`** | `EVIL_TWIN` | `02_homoglyph_typo`<br>`03_word_addition`<br>`04_word_subtraction`<br>`05_delimiter_case`<br>`08_cross_script`<br>`09_invisible_chars`<br>`10_accents`<br>`13_combined` | Directly targets an authorized SSID with orthographic, lexical, or encoding manipulations. High character overlap with target. |
+| **`classical_orthographic_evil_twin`** | `EVIL_TWIN` | `02_homoglyph_typo`<br>`03_word_addition`<br>`04_word_subtraction`<br>`05_delimiter_case`<br>`08_cross_script_homoglyphs`<br>`09_invisible_and_whitespace`<br>`10_normalization_accents`<br>`13_combined_adversarial_tricks` | Directly targets an authorized SSID with orthographic, lexical, or encoding manipulations. High character overlap with target. |
 | **`zero_overlap_semantic_evil_twin`** | `EVIL_TWIN` | Advanced `03_word_addition` & `06_semantic_relevant` with zero lexical overlap | High-risk social engineering lures that avoid protected brand keywords entirely (e.g., `Complimentary Patron Access`, `Faculty Instructional Net`). |
 | **`departmental_sister_benign`** | `BENIGN` | Legitimate `06_semantic_relevant` | Authorized subnets, research units, and sister campuses that share contextual terminology but represent legitimate operations. |
 | **`ambient_environmental_noise`** | `BENIGN` | `07_irrelevant_noise`<br>Pure `11_emoji_and_non_latin` | External retail shops, cafes, neighboring home networks, and commercial hotspots operating safely in the airspace. |
@@ -258,7 +271,7 @@ To generate datasets compatible with the framework test engine, use the followin
   {
     "observed_ssid": "S1am Wifi",
     "target_authorized_ssid": "Siam Wifi",
-    "category": "homoglyph_typo",
+    "category": "02_homoglyph_typo",
     "macro_category": "classical_orthographic_evil_twin",
     "ground_truth_label": "EVIL_TWIN",
     "description": "ASCII leetspeak substitution of Latin 'i' with digit '1' in brand root."
@@ -266,7 +279,7 @@ To generate datasets compatible with the framework test engine, use the followin
   {
     "observed_ssid": "Starbucks WiFi",
     "target_authorized_ssid": null,
-    "category": "irrelevant_noise",
+    "category": "07_irrelevant_noise",
     "macro_category": "ambient_environmental_noise",
     "ground_truth_label": "BENIGN",
     "description": "Commercial third-party coffee shop network with zero institutional overlap."
@@ -282,25 +295,88 @@ Copy and paste the template below into any LLM (e.g., Gemini, Claude, GPT) to ge
 
 ```text
 You are an expert wireless network security test generator.
-Generate a JSON array of [N] synthetic 802.11 SSID test cases targeting the authorized whitelist:
+Generate a JSON array of [N] synthetic IEEE 802.11 SSID test cases targeting the authorized whitelist:
 Authorized Baseline: ["AcmeCorp Secure", "AcmeCorp Guest", "Siam Wifi", "SiamXP Wifi", "eduroam"]
 
 Follow these strict rules:
-1. Adhere to the Single-Variable Mutation Principle: each test case must modify strictly ONE feature (homoglyph alone, lure addition alone, delimiter change alone) unless explicitly assigned to 'combined_adversarial_tricks'.
+1. Adhere to the Single-Variable Mutation Principle: each test case must modify strictly ONE feature (homoglyph alone, lure addition alone, delimiter change alone) unless explicitly assigned to '13_combined_adversarial_tricks'.
 2. Use natural space delimiters (" ") as the real-world baseline. Do not use underscores in the baseline authorized target.
-3. Distribute the cases across these categories:
-   - authorized_exact (BENIGN)
-   - homoglyph_typo (EVIL_TWIN)
-   - word_addition (EVIL_TWIN)
-   - word_subtraction (EVIL_TWIN)
-   - delimiter_case (EVIL_TWIN)
-   - semantic_relevant (BENIGN or EVIL_TWIN)
-   - irrelevant_noise (BENIGN)
-   - cross_script_homoglyphs (EVIL_TWIN - specify Unicode)
-   - invisible_and_whitespace (EVIL_TWIN - specify Unicode)
-   - normalization_accents (EVIL_TWIN - specify Unicode)
-   - emoji_and_non_latin (EVIL_TWIN or BENIGN)
+3. Distribute the cases across ALL 13 categories using their canonical identifiers:
+   - 01_authorized_exact (BENIGN)
+   - 02_homoglyph_typo (EVIL_TWIN)
+   - 03_word_addition (EVIL_TWIN)
+   - 04_word_subtraction (EVIL_TWIN)
+   - 05_delimiter_case (EVIL_TWIN)
+   - 06_semantic_relevant (BENIGN or EVIL_TWIN)
+   - 07_irrelevant_noise (BENIGN)
+   - 08_cross_script_homoglyphs (EVIL_TWIN - specify Unicode codepoint in description)
+   - 09_invisible_and_whitespace (EVIL_TWIN - specify Unicode codepoint like ZWSP \u200B or BOM \uFEFF)
+   - 10_normalization_accents (EVIL_TWIN - specify fullwidth or combining accent Unicode)
+   - 11_emoji_and_non_latin (EVIL_TWIN for brand+emoji, BENIGN for pure non-Latin regional script)
+   - 12_byte_level_breakage (MALFORMED for length > 32 octets or bad UTF-8, BENIGN_HIDDEN for 0 bytes)
+   - 13_combined_adversarial_tricks (EVIL_TWIN - multi-layer stacked tricks)
 
 Output strictly valid JSON with keys:
 "observed_ssid", "target_authorized_ssid", "category", "macro_category", "ground_truth_label", "description"
 ```
+
+---
+
+## 6. Operational Instructions: Step-by-Step Dataset Generation Workflow
+
+Follow these steps to generate, validate, and evaluate new synthetic test suites using this specification:
+
+```mermaid
+flowchart LR
+    Step1["1. Set Whitelist & Target Domain"] --> Step2["2. Choose Category Quotas"]
+    Step2 --> Step3["3. Run LLM Prompt"]
+    Step3 --> Step4["4. Validate JSON & 802.11 Spec"]
+    Step4 --> Step5["5. Benchmark & Evaluate"]
+```
+
+### Step 1: Select Target Environment & Whitelist
+1. Choose the target organization domain:
+   * **Enterprise Corporate:** `["AcmeCorp Secure", "AcmeCorp Staff", "AcmeCorp Guest"]`
+   * **Hospitality / Hotel:** `["Hilton Honors WiFi", "Hilton Guest", "Hilton Conference"]`
+   * **Airport / Transport:** `["Airport Free WiFi", "Airport Passenger 5G", "SkyLounge VIP"]`
+   * **Academic / University:** `["Siam Wifi", "SiamXP Wifi", "University Campus 5G", "eduroam"]`
+2. Ensure all authorized targets use standard real-world space delimiters (`" "`) and TitleCase capitalization.
+
+### Step 2: Configure Category Quotas
+Determine the sample size ($N$) and distribution based on your evaluation goal:
+* **Balanced Verification Suite ($N = 130$):** Exactly 10 samples per category across all 13 categories.
+* **Realistic Airspace Simulation ($N = 100$):**
+  * 10% `01_authorized_exact` (Normal baseline traffic)
+  * 30% `07_irrelevant_noise` (Surrounding retail, cafes, and residential routers)
+  * 10% `06_semantic_relevant` (Affiliated sister branches and departmental subnets)
+  * 40% `02_homoglyph_typo` through `05_delimiter_case` (Common phishing and lures)
+  * 10% `08_cross_script_homoglyphs` through `13_combined` (Advanced adversarial evasion)
+
+### Step 3: Run the LLM Prompt
+1. Copy the prompt template from **Section 5**.
+2. Replace `[N]` with your target count and update the `Authorized Baseline` array with your Step 1 whitelist.
+3. Configure your LLM inference parameters:
+   * **Temperature:** `0.2` to `0.4` (Low temperature ensures strict adherence to single-variable mutation rules and valid JSON formatting).
+   * **System Prompt:** Set system role to `"Senior Wireless Network Security Auditor"`.
+
+### Step 4: Quality Control & Validation Checklist
+Before feeding the generated JSON into intrusion detection models, run the following automated checks:
+* [ ] **Byte Length Check:** Verify `len(observed_ssid.encode('utf-8')) <= 32`. Any sample $> 32$ bytes must strictly belong to `12_byte_level_breakage`.
+* [ ] **Single-Variable Rule:** Ensure non-Category 13 samples do not combine tricks (e.g. verify a `02_homoglyph_typo` sample does not also introduce an underscore delimiter).
+* [ ] **JSON Syntax:** Parse with `json.loads(output)` to confirm formatting and required keys: `observed_ssid`, `target_authorized_ssid`, `category`, `macro_category`, `ground_truth_label`, `description`.
+
+### Step 5: Execute Automated Benchmark Evaluation
+Run the generated test cases against the framework detection engines:
+1. Save the validated JSON to a file (e.g., `ssid_feature_framework/my_custom_test_cases.json`).
+2. Run the unit test sanitization suite:
+   ```powershell
+   py ssid_feature_framework/adversarial_cases_research/test_defensive_sanitizer.py
+   ```
+3. Run the feature extraction decision tree benchmark:
+   ```powershell
+   py ssid_feature_framework/benchmark.py
+   ```
+4. Verify classifier output:
+   * **Expected Detection Recall:** $\ge 98.0\%$ on evil twin categories.
+   * **Expected Precision:** $\ge 95.0\%$ on benign noise discard.
+   * **Sanitization Latency:** $< 0.05\text{ ms}$ per frame.
