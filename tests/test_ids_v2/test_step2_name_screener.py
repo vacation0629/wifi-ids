@@ -14,8 +14,10 @@ Verifies:
 - Check 2.9: Fallback safety when optional dependencies are simulated absent.
 """
 
+import concurrent.futures
 import os
 import tempfile
+import threading
 import time
 import unittest
 from typing import List
@@ -91,6 +93,7 @@ class TestStep2NameScreener(unittest.TestCase):
         # In Stage 2.5 result, verify PSK down-weighting: eff_bge == 0.5 * base_bge
         expected_eff_psk = round(PSK_WEIGHT_MULTIPLIER * res_psk.base_bge, 4)
         self.assertAlmostEqual(res_psk.eff_bge, expected_eff_psk, places=3)
+        self.assertFalse(res_psk.is_suspicious_name, "WPA2-PSK beacon for Free_Campus_WiFi should be suppressed by 0.5x multiplier")
 
         # 2. Flush to SQLite to ensure WAL disk persistence is also encryption-agnostic
         self.db.flush_to_sqlite(force=True)
@@ -173,20 +176,29 @@ class TestStep2NameScreener(unittest.TestCase):
         # 1. First beacon: benign cafe network
         res1 = self.screener.screen_beacon(bssid, "Corner_Cafe_WiFi", encryption_type="WPA2-PSK")
         self.assertFalse(res1.is_mutated)
+        self.assertFalse(res1.is_suspicious_name, "Benign cafe network must NOT be flagged as suspicious")
         self.assertEqual(res1.bssid_state.current_risk_score, 0)
 
         # 2. Second beacon from same BSSID changes SSID to University_Campus_5G_Login
         res2 = self.screener.screen_beacon(bssid, "University_Campus_5G_Login", encryption_type="WPA2-PSK")
         self.assertTrue(res2.is_mutated)
         self.assertEqual(res2.bssid_state.is_mutated, 1)
-        self.assertGreaterEqual(res2.bssid_state.current_risk_score, 45, "Must attach +45 pts on mutation")
+        self.assertEqual(res2.bssid_state.current_risk_score, 45, "Must attach +45 pts on mutation")
+        self.assertEqual(res2.bssid_state.risk_tier, "MEDIUM")
         self.assertTrue(res2.is_suspicious_name, "Mutation must force Stage 2.5 = True")
 
-        # 3. Verify database state reflects mutation
+        # 3. Third beacon alternates back: verify score does NOT accumulate unboundedly
+        res3 = self.screener.screen_beacon(bssid, "Corner_Cafe_WiFi", encryption_type="WPA2-PSK")
+        self.assertTrue(res3.is_mutated)
+        self.assertEqual(res3.bssid_state.current_risk_score, 45, "Score must not accumulate beyond 45 on alternating mutation")
+        self.assertEqual(res3.bssid_state.risk_tier, "MEDIUM")
+
+        # 4. Verify database state reflects mutation
         state_in_db = self.db.get_bssid(bssid)
         self.assertIsNotNone(state_in_db)
         self.assertEqual(state_in_db.is_mutated, 1)
-        self.assertEqual(state_in_db.current_ssid, "University_Campus_5G_Login")
+        self.assertEqual(state_in_db.current_risk_score, 45)
+        self.assertEqual(state_in_db.current_ssid, "Corner_Cafe_WiFi")
 
     def test_check_2_4_whitelisted_bssid_path_and_mutation_override(self):
         """
@@ -308,6 +320,121 @@ class TestStep2NameScreener(unittest.TestCase):
         self.assertIs(rec1, rec2)
         self.assertLess(elapsed_per_hit, 0.1, f"Cache hit too slow: {elapsed_per_hit:.4f} ms")
 
+    def test_check_2_9_lru_cap_enforcement_on_bssids(self):
+        """
+        Verify that screen_beacon() strictly enforces the 4,096 LRU cache cap
+        when receiving 4,500 new BSSIDs, preventing RAM exhaustion.
+        """
+        # Pre-cache one SSID so inference is instant
+        self.screener.screen_ssid("LRU_Fixed_SSID")
+        for i in range(4500):
+            b = f"00:00:00:00:{i//256:02x}:{i%256:02x}"
+            self.screener.screen_beacon(b, "LRU_Fixed_SSID", encryption_type="OPEN")
+
+        self.assertLessEqual(
+            len(self.db.ram_bssids),
+            4096,
+            f"ram_bssids exceeded 4096 LRU cap: {len(self.db.ram_bssids)}"
+        )
+
+    def test_check_2_10_concurrent_threads_submitting_to_adaptive_queue(self):
+        """
+        Verify that concurrent worker threads calling submit_ssid() / screen_ssid()
+        receive correct results without hanging, deadlocking, or racing.
+        """
+        num_threads = 8
+        results = [None] * num_threads
+
+        def worker(idx: int):
+            rec = self.screener.submit_ssid(f"Concurrent_Flood_SSID_{idx}", timeout=10.0)
+            results[idx] = rec
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(num_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=10.0)
+
+        for i, rec in enumerate(results):
+            self.assertIsNotNone(rec, f"Thread {i} timed out or failed")
+            self.assertEqual(rec.ssid_text, f"Concurrent_Flood_SSID_{i}")
+
+    def test_check_2_11_unicode_and_foreign_ssids(self):
+        """
+        Verify that non-ASCII and Unicode SSIDs (Thai, Emoji, Cyrillic)
+        are handled safely without crashes and benign foreign APs are not falsely flagged.
+        """
+        unicode_cases = [
+            ("ห้องสมุด_WiFi", "ห้องสมุด"),         # Thai Library
+            ("Free_WiFi_📶", "Free 📶"),            # Emoji
+            ("Университет_WiFi", "Университет"),   # Cyrillic
+        ]
+        for ssid, clean_expected in unicode_cases:
+            cleaned = strip_tech_stopwords(ssid)
+            self.assertEqual(cleaned, clean_expected)
+
+        # Benign foreign AP should NOT trigger suspicious evil twin alert
+        thai_res = self.screener.screen_beacon("00:11:22:33:44:99", "ห้องสมุด_WiFi", encryption_type="WPA2-PSK")
+        self.assertFalse(thai_res.is_suspicious_name, "Benign Thai SSID must not be flagged as evil twin")
+        self.assertLess(thai_res.xgb_prob, 0.50)
+
+    def test_check_2_12_concurrent_beacon_and_flush_thread_safety(self):
+        """
+        Verify database manager and screener thread-safety when sniffer threads
+        and periodic WAL flushes execute concurrently.
+        """
+        stop_event = threading.Event()
+        errors = []
+
+        def beacon_worker():
+            i = 0
+            while not stop_event.is_set() and i < 100:
+                try:
+                    b = f"02:00:00:00:00:{i % 50:02x}"
+                    self.screener.screen_beacon(b, f"Bench_SSID_{i % 10}", encryption_type="OPEN")
+                    i += 1
+                except Exception as e:
+                    errors.append(e)
+                    break
+
+        def flush_worker():
+            while not stop_event.is_set():
+                try:
+                    self.db.flush_to_sqlite(force=True)
+                    time.sleep(0.005)
+                except Exception as e:
+                    errors.append(e)
+                    break
+
+        t_beacon = threading.Thread(target=beacon_worker)
+        t_flush = threading.Thread(target=flush_worker)
+
+        t_beacon.start()
+        t_flush.start()
+
+        t_beacon.join(timeout=5.0)
+        stop_event.set()
+        t_flush.join(timeout=5.0)
+
+        self.assertEqual(len(errors), 0, f"Thread collision errors occurred: {errors}")
+
+    def test_check_2_13_cyrillic_homoglyph_detection(self):
+        """
+        Verify Cyrillic homoglyph spoofing (e.g. 'еdurоаm' with Cyrillic e, o, a)
+        is properly flagged even in fallback environments without FastEmbed.
+        """
+        # Cyrillic: \u0435 (e), \u043e (o), \u0430 (a)
+        cyrillic_eduroam = "\u0435dur\u043e\u0430m"
+        bssid = "00:11:22:33:44:99"
+
+        # OPEN beacon should trigger Stage 2.5 is_suspicious_name = True
+        res = self.screener.screen_beacon(bssid, cyrillic_eduroam, encryption_type="OPEN")
+        self.assertTrue(
+            res.is_suspicious_name,
+            f"Cyrillic homoglyph '{cyrillic_eduroam}' on OPEN must be flagged! xgb={res.xgb_prob}, eff={res.eff_bge}"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
+

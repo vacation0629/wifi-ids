@@ -1,1 +1,7 @@
+# Edge Wi-Fi Evil Twin Detection Framework (v2.1.2)
+# Core Production Dependencies
+numpy>=1.24.0,<2.0.0
+xgboost>=1.7.0
+fastembed>=0.2.0
+scapy>=2.5.0
 requests>=2.31.0

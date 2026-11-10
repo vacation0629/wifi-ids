@@ -1,0 +1,13 @@
+# Edge Wi-Fi Evil Twin Detection Framework (v2.1.2)
+# Optimized Python Virtual Environment Dependencies for Kali Linux (ARM64 / x86_64)
+
+# Core Numerical & Machine Learning
+numpy>=1.24.0,<2.0.0
+xgboost>=1.7.0
+fastembed>=0.2.0
+
+# IEEE 802.11 Packet Capture & Frame Decoding
+scapy>=2.5.0
+
+# API Communication & Notifications
+requests>=2.31.0

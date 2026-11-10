@@ -1,0 +1,55 @@
+services:
+  # Main Kali ARM64 Detector Container (Simulating Raspberry Pi 4/5 IDS node)
+  kali-detector:
+    image: kali-detector-arm64
+    container_name: kali-detector
+    platform: linux/arm64
+    mem_limit: 512m
+    cpus: 1.0
+    ports:
+      - "5555:5555/udp"
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      wifi-lab-net:
+        ipv4_address: 10.10.0.5
+    environment:
+      - USE_LOCAL_LLM=true
+      - LOCAL_LLM_URL=http://host.docker.internal:1234/v1
+      - LOCAL_LLM_MODEL=nvidia/nemotron-mini-4b-instruct
+      - HF_API_TOKEN=${HF_API_TOKEN:-}
+      - SIMILARITY_THRESHOLD=0.75
+      - RUN_MODE=listen
+      - LISTEN_PORT=5555
+    volumes:
+      - ./detector:/app
+    working_dir: /app
+    command: ["python3", "detector.py"]
+    restart: unless-stopped
+
+  # Consolidated Traffic Simulator (All 4 generator roles in 1 single container with 4 threads)
+  wifi-traffic-simulator:
+    image: wifi-frame-client
+    container_name: wifi-traffic-simulator
+    mem_limit: 64m
+    cpus: 0.5
+    networks:
+      wifi-lab-net:
+        ipv4_address: 10.10.0.10
+    environment:
+      - TARGET_HOST=10.10.0.5
+      - TARGET_PORT=5555
+    volumes:
+      - ./clients:/app
+    working_dir: /app
+    command: ["python3", "unified_traffic_simulator.py"]
+    restart: unless-stopped
+
+networks:
+  wifi-lab-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.10.0.0/24

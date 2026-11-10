@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import sys
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -39,6 +40,12 @@ except ImportError:
 
         def __getitem__(self, item):
             if isinstance(item, tuple):
+                if len(item) == 2 and isinstance(item[0], slice):
+                    # 2D Column slicing like a[:, 1]
+                    sl = item[0]
+                    col_idx = item[1]
+                    rows = super().__getitem__(sl)
+                    return _MockArray([r[col_idx] for r in rows])
                 row = super().__getitem__(item[0])
                 for idx in item[1:]:
                     row = row[idx]
@@ -70,6 +77,8 @@ except ImportError:
             return struct.pack(f"{len(flat)}f", *flat)
 
         def __matmul__(self, other):
+            if not self or not other:
+                return _MockArray([])
             if isinstance(self[0], (list, _MockArray)):
                 if not isinstance(other[0], (list, _MockArray)):
                     return _MockArray([sum(a * b for a, b in zip(row, other)) for row in self])
@@ -80,8 +89,10 @@ except ImportError:
                         for row in self
                     ])
             else:
-                cols = list(zip(*other))
-                return _MockArray([sum(a * b for a, b in zip(self, col)) for col in cols])
+                if isinstance(other[0], (list, _MockArray)):
+                    cols = list(zip(*other))
+                    return _MockArray([sum(a * b for a, b in zip(self, col)) for col in cols])
+                return sum(a * b for a, b in zip(self, other))
 
         @property
         def T(self):
@@ -239,6 +250,19 @@ def strip_tech_stopwords(ssid: str, stopwords: Optional[List[str]] = None) -> st
     return " ".join(remaining)
 
 
+CYRILLIC_CONFUSABLE_MAP: Dict[str, str] = {
+    "а": "a", "е": "e", "о": "o", "р": "p", "с": "c", "у": "y", "х": "x", "і": "i",
+    "ј": "j", "ѕ": "s", "ԁ": "d",
+    "А": "A", "В": "B", "Е": "E", "К": "K", "М": "M", "Н": "H", "О": "O", "Р": "P",
+    "С": "C", "Т": "T", "Х": "X", "І": "I", "Ј": "J", "Ѕ": "S",
+}
+
+
+def normalize_confusables(s: str) -> str:
+    """Replaces common confusable Cyrillic homoglyphs with ASCII equivalents."""
+    return "".join(CYRILLIC_CONFUSABLE_MAP.get(c, c) for c in s)
+
+
 # Fallback pure-Python string distance functions if ssid_feature_framework not in path
 def _fallback_levenshtein(s1: str, s2: str) -> int:
     if s1 == s2:
@@ -262,14 +286,20 @@ def _fallback_extract_features(observed: str, target: str) -> Dict[str, Any]:
     """Fallback 13-feature extractor if ssid_feature_framework is not present."""
     len1, len2 = len(observed), len(target)
     max_len = max(len1, len2) or 1
-    lev = _fallback_levenshtein(observed, target)
+    lev_raw = _fallback_levenshtein(observed, target)
+
+    # Check for confusable Cyrillic homoglyphs
+    homo_count = sum(1 for c in observed if c in CYRILLIC_CONFUSABLE_MAP)
+    normalized_obs = normalize_confusables(observed)
+    lev_norm = _fallback_levenshtein(normalized_obs, target) if homo_count > 0 else lev_raw
+    lev = min(lev_raw, lev_norm)
     lev_ratio = round(1.0 - (lev / max_len), 4)
 
     # Simple approximations for fallback environment
-    obs_lower = observed.lower()
+    obs_lower = normalized_obs.lower()
     tgt_lower = target.lower()
     prefix_len = 0
-    for c1, c2 in zip(observed, target):
+    for c1, c2 in zip(normalized_obs, target):
         if c1 == c2:
             prefix_len += 1
         else:
@@ -282,7 +312,7 @@ def _fallback_extract_features(observed: str, target: str) -> Dict[str, Any]:
         "f3_jaro_winkler": lev_ratio,
         "f4_ngram2": lev_ratio,
         "f5_ngram3": lev_ratio,
-        "f6_homoglyphs": 0,
+        "f6_homoglyphs": homo_count,
         "f7_len_abs_diff": abs(len1 - len2),
         "f8_len_ratio": round(min(len1, len2) / max_len, 4),
         "f9_token_jaccard": 1.0 if obs_lower == tgt_lower else 0.0,
@@ -319,6 +349,7 @@ class Stage25Result:
     is_whitelisted: bool
     record: Optional[SSIDRecord]
     bssid_state: BSSIDState
+    track_4a_result: Optional[Any] = None
 
 
 class WorkConservingAIQueue:
@@ -331,24 +362,27 @@ class WorkConservingAIQueue:
     def __init__(self, max_batch_size: int = AI_QUEUE_MAX_BATCH):
         self.max_batch_size = max_batch_size
         self._queue: collections.deque[Tuple[str, concurrent.futures.Future]] = collections.deque()
-        self._lock = False
+        self._lock = threading.Lock()
 
     def enqueue(self, ssid: str) -> concurrent.futures.Future:
         """Enqueues an SSID for adaptive evaluation, returning a Future."""
-        fut: concurrent.futures.Future = concurrent.futures.Future()
-        self._queue.append((ssid, fut))
-        return fut
+        with self._lock:
+            fut: concurrent.futures.Future = concurrent.futures.Future()
+            self._queue.append((ssid, fut))
+            return fut
 
     def get_pending_batch(self, max_items: Optional[int] = None) -> List[Tuple[str, concurrent.futures.Future]]:
         """Drains up to max_items (default: max_batch_size) from the queue."""
         limit = max_items or self.max_batch_size
-        batch = []
-        while self._queue and len(batch) < limit:
-            batch.append(self._queue.popleft())
-        return batch
+        with self._lock:
+            batch = []
+            while self._queue and len(batch) < limit:
+                batch.append(self._queue.popleft())
+            return batch
 
     def __len__(self) -> int:
-        return len(self._queue)
+        with self._lock:
+            return len(self._queue)
 
 
 class CampusNameScreener:
@@ -373,6 +407,7 @@ class CampusNameScreener:
         auto_train_xgb: bool = True,
         embedder: Optional[Any] = None,
         xgb_model: Optional[Any] = None,
+        track_4a: Optional[Any] = None,
     ):
         self.db_manager = db_manager
         self.whitelist = list(whitelist) if whitelist else list(DEFAULT_CAMPUS_WHITELIST)
@@ -381,6 +416,7 @@ class CampusNameScreener:
             os.path.dirname(__file__), "models", "xgb_ssid_model.json"
         )
         self.auto_train_xgb = auto_train_xgb
+        self.track_4a = track_4a
 
         # 1. Initialize XGBoost Classifier
         if xgb_model is not None:
@@ -400,6 +436,7 @@ class CampusNameScreener:
 
         # 4. Adaptive AI Queue (Q1)
         self.ai_queue = WorkConservingAIQueue(max_batch_size=AI_QUEUE_MAX_BATCH)
+        self._worker_lock = threading.Lock()
 
     def _init_xgb_model(self) -> Any:
         """Loads serialized XGBoost model or trains 50-tree classifier in < 80ms."""
@@ -441,7 +478,12 @@ class CampusNameScreener:
                 X_list, y_list = [], []
                 for s in samples:
                     obs = s["observed_ssid"]
-                    best_target, feats = self.compute_features(obs)
+                    tgt = s.get("target_authorized_ssid")
+                    if tgt and HAS_FEATURE_FRAMEWORK and raw_extract_features is not None:
+                        feat_dict = raw_extract_features(obs, tgt)
+                        feats = [float(feat_dict.get(fn, 0.0)) for fn in FEATURE_NAMES]
+                    else:
+                        best_target, feats = self.compute_features(obs)
                     X_list.append(feats)
                     y_list.append(1 if s["ground_truth_label"] == "EVIL_TWIN" else 0)
 
@@ -462,12 +504,30 @@ class CampusNameScreener:
         if not HAS_FASTEMBED:
             logger.warning("fastembed not installed. Semantic embeddings will use fallback.")
             return None
+
+        # Check local offline cache paths
+        cache_candidates = [
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "local_llm", "models", "fastembed_cache"),
+            os.getenv("FASTEMBED_CACHE_PATH")
+        ]
+        local_cache = None
+        for candidate in cache_candidates:
+            if candidate and os.path.isdir(candidate):
+                local_cache = candidate
+                break
+
+        if local_cache:
+            return TextEmbedding("BAAI/bge-small-en-v1.5", cache_dir=local_cache, threads=self.threads)
         return TextEmbedding("BAAI/bge-small-en-v1.5", threads=self.threads)
 
     def set_whitelist(self, whitelist: List[str]) -> None:
         """Updates the protected whitelist and regenerates W matrix."""
         self.whitelist = list(whitelist)
         self.recompute_whitelist_embeddings()
+
+    def set_track_4a(self, track_4a: Any) -> None:
+        """Sets or updates the Track 4A State Tracker instance."""
+        self.track_4a = track_4a
 
     def recompute_whitelist_embeddings(self) -> None:
         """
@@ -482,7 +542,12 @@ class CampusNameScreener:
             # Embed all whitelisted SSIDs using FastEmbed
             embs = np.array(list(self.embedder.embed(self.whitelist)), dtype=np.float32)
             norms = np.linalg.norm(embs, axis=1, keepdims=True)
-            norms[norms == 0.0] = 1.0
+            if HAS_NUMPY:
+                norms[norms == 0.0] = 1.0
+            else:
+                for i in range(len(norms)):
+                    if norms[i][0] == 0.0:
+                        norms[i][0] = 1.0
             self.W = embs / norms
         else:
             # Deterministic pseudo-embedding for environments without FastEmbed
@@ -491,15 +556,24 @@ class CampusNameScreener:
     def _pseudo_embed(self, text: str) -> Any:
         """Generates deterministic pseudo-embedding vector for fallback environments."""
         vec = np.zeros(384, dtype=np.float32)
-        words = text.lower().replace("_", " ").replace("-", " ").split()
-        campus_kw = {"university", "campus", "staff", "student", "guest", "portal", "eduroam"}
+        norm_text = normalize_confusables(text)
+        words = norm_text.lower().replace("_", " ").replace("-", " ").split()
+        campus_kw = {
+            "university", "campus", "staff", "student", "guest", "portal", "eduroam",
+            "faculty", "school", "college", "dept", "department", "law", "library", "lab", "academic"
+        }
+        campus_matches = sum(1 for w in words if w in campus_kw)
+        if campus_matches > 0:
+            for idx in range(32):
+                vec[idx] += 1.0 * min(campus_matches, 2)
+
         for w in words:
             weight = 5.0 if w in campus_kw else 1.5
-            hw = sum(ord(c) * (37**i) for i, c in enumerate(w)) % 384
+            hw = (sum(ord(c) * (37**i) for i, c in enumerate(w)) % 352) + 32
             vec[hw] += weight
             for i in range(len(w) - 1):
                 bg = w[i : i + 2]
-                h = (ord(bg[0]) * 31 + ord(bg[1])) % 384
+                h = ((ord(bg[0]) * 31 + ord(bg[1])) % 352) + 32
                 vec[h] += 0.8
         norm = np.linalg.norm(vec)
         return vec / (norm if norm > 0 else 1.0)
@@ -530,15 +604,24 @@ class CampusNameScreener:
         # Pure-Python heuristic fallback if xgboost is absent
         f1_lev = feature_vector[0]
         f3_jaro = feature_vector[2]
-        f11_lure = feature_vector[10]
+        f5_ngram3 = feature_vector[4]
         f6_homo = feature_vector[5]
+        f11_lure = feature_vector[10]
+        f12_role = feature_vector[11]
+
+        # If zero or very low similarity to target whitelist, it is not an Evil Twin
+        if f1_lev < 0.40 and f3_jaro < 0.60 and f5_ngram3 < 0.15:
+            return 0.0
+
         score = 0.0
-        if f1_lev >= 0.70 and f1_lev < 1.0:
+        if (0.70 <= f1_lev < 1.0) or (f1_lev >= 0.70 and f6_homo > 0):
             score += 0.50
-        if f11_lure > 0:
-            score += 0.40
-        if f6_homo > 0:
+        if f6_homo > 0 and (f1_lev >= 0.50 or f3_jaro >= 0.65):
             score += 0.45
+        if f11_lure > 0 and (f1_lev >= 0.45 or f3_jaro >= 0.60):
+            score += 0.35
+        if f12_role > 0 and (f1_lev >= 0.45 or f3_jaro >= 0.60):
+            score += 0.25
         return min(1.0, max(0.0, score))
 
     def _embed_single(self, text: str) -> np.ndarray:
@@ -679,16 +762,79 @@ class CampusNameScreener:
 
         return records
 
-    def screen_ssid(self, ssid: str) -> SSIDRecord:
+    def submit_ssid(self, ssid: str, timeout: Optional[float] = 10.0) -> SSIDRecord:
         """
-        Public Stage 1 entrypoint:
-        1. Checks RAM / SQLite cache (0.002 ms).
-        2. On cache miss, computes via Work-Conserving Adaptive AI Worker.
+        Submits an SSID to the Work-Conserving Adaptive AI Worker:
+        - If cached in RAM or DB: returns immediately (0.002 ms).
+        - If worker idle (N=1): runs Type A instant 1xM dot product (<10 ms) with 0 ms queue wait.
+        - If flooded (N>1): batches up to 32 SSIDs in Type B matrix multiply (<55 ms).
         """
         cached = self.db_manager.get_ssid(ssid)
         if cached is not None:
             return cached
-        return self.compute_ssid_record(ssid)
+
+        fut = self.ai_queue.enqueue(ssid)
+        self._drain_adaptive_queue()
+        if not fut.done():
+            with self._worker_lock:
+                if not fut.done():
+                    self._drain_adaptive_queue()
+        return fut.result(timeout=timeout)
+
+    def _drain_adaptive_queue(self) -> None:
+        """Work-conserving draining loop executing Type A or Type B inference."""
+        acquired = self._worker_lock.acquire(blocking=False)
+        if not acquired:
+            return
+
+        try:
+            while len(self.ai_queue) > 0:
+                batch = self.ai_queue.get_pending_batch()
+                if not batch:
+                    break
+
+                ssids = [item[0] for item in batch]
+                futures = [item[1] for item in batch]
+
+                try:
+                    uncached_indices = []
+                    uncached_ssids = []
+                    records: List[Optional[SSIDRecord]] = [None] * len(ssids)
+
+                    for idx, s in enumerate(ssids):
+                        c = self.db_manager.get_ssid(s)
+                        if c is not None:
+                            records[idx] = c
+                        else:
+                            uncached_indices.append(idx)
+                            uncached_ssids.append(s)
+
+                    if uncached_ssids:
+                        if len(uncached_ssids) == 1:
+                            rec = self.compute_ssid_record(uncached_ssids[0])
+                            records[uncached_indices[0]] = rec
+                        else:
+                            batch_recs = self.compute_ssid_records_batch(uncached_ssids)
+                            for u_idx, rec in zip(uncached_indices, batch_recs):
+                                records[u_idx] = rec
+
+                    for fut, rec in zip(futures, records):
+                        if not fut.done():
+                            fut.set_result(rec)
+                except Exception as ex:
+                    for fut in futures:
+                        if not fut.done():
+                            fut.set_exception(ex)
+        finally:
+            self._worker_lock.release()
+
+    def screen_ssid(self, ssid: str) -> SSIDRecord:
+        """
+        Public Stage 1 entrypoint:
+        1. Checks RAM / SQLite cache (0.002 ms).
+        2. On cache miss, evaluates via Work-Conserving Adaptive AI Worker.
+        """
+        return self.submit_ssid(ssid)
 
     def screen_ssid_batch(self, ssids: List[str]) -> List[SSIDRecord]:
         """
@@ -746,17 +892,23 @@ class CampusNameScreener:
         self,
         bssid: str,
         ssid: str,
-        encryption_type: str = "OPEN"
+        encryption_type: str = "OPEN",
+        tag3_channel: Optional[int] = None,
+        seq_num: int = 0,
+        tsf_timestamp: int = 0,
+        now_ts: Optional[float] = None,
     ) -> Stage25Result:
         """
-        Full Group 1 Pipeline for an incoming Beacon frame:
+        Full Group 1 & Track 4A Pipeline for an incoming Beacon frame:
         - Stage 0: BSSID Cache lookup & Option M2 mutation check (+45 pts).
-        - Whitelisted BSSID check (skips AI if unmutated).
+        - Whitelisted BSSID check (skips AI if unmutated, routes through Track 4A).
         - Stage 1 & 2: Encryption-agnostic AI screening.
         - Stage 2.5: Dynamic PSK-weighted suspicious name evaluation.
+        - Track 4A: Active RF state inspection (Tag 3 channel clone, Seq/TSF collision).
         """
+        if now_ts is None:
+            now_ts = time.time()
         state = self.db_manager.get_bssid(bssid)
-        now_ts = time.time()
 
         if state is None:
             # Stage 0: New BSSID
@@ -769,8 +921,7 @@ class CampusNameScreener:
                 last_seen_ts=now_ts,
                 encryption_type=encryption_type,
             )
-            self.db_manager.ram_bssids[bssid] = state
-            self.db_manager.dirty_bssids.add(bssid)
+            self.db_manager.put_bssid(state)
         else:
             # Stage 0: Known BSSID
             state.last_seen_ts = now_ts
@@ -778,14 +929,34 @@ class CampusNameScreener:
 
             # Option M2: BSSID Name Mutation Check
             if state.current_ssid != ssid:
-                state.is_mutated = 1
-                state.current_risk_score += 45
+                if not state.is_mutated:
+                    state.is_mutated = 1
+                    state.current_risk_score = min(100, state.current_risk_score + 45)
+                    if state.current_risk_score >= 70:
+                        state.risk_tier = "HIGH"
+                    elif state.current_risk_score >= 30:
+                        state.risk_tier = "MEDIUM"
                 state.current_ssid = ssid
-                self.db_manager.dirty_bssids.add(bssid)
+                self.db_manager.put_bssid(state)
 
         # Stage 0: Whitelisted AP Path
         if state.is_whitelisted == 1 and not state.is_mutated:
             # Whitelisted BSSID with unchanged SSID bypasses AI Stage 1 & 2
+            # BUT MUST route through Track 4A (Point 1 Fix)
+            track_4a_res = None
+            if self.track_4a is not None:
+                tag3_ch = 1 if tag3_channel is None else tag3_channel
+                track_4a_res = self.track_4a.process_beacon_frame(
+                    bssid=bssid,
+                    observed_ssid=ssid,
+                    tag3_channel=tag3_ch,
+                    seq_num=seq_num,
+                    tsf_timestamp=tsf_timestamp,
+                    now_ts=now_ts,
+                )
+                state.current_risk_score = track_4a_res.risk_score
+                state.risk_tier = track_4a_res.risk_tier
+
             return Stage25Result(
                 bssid=bssid,
                 ssid=ssid,
@@ -797,6 +968,7 @@ class CampusNameScreener:
                 is_whitelisted=True,
                 record=None,
                 bssid_state=state,
+                track_4a_result=track_4a_res,
             )
 
         # Stage 1 & 2: AI Screening
@@ -804,6 +976,22 @@ class CampusNameScreener:
 
         # Stage 2.5: Dynamic PSK-weighted Gatekeeper
         is_suspicious, eff_bge, base_bge = self.evaluate_stage_2_5(record, state)
+
+        # Also run Track 4A if attached
+        track_4a_res = None
+        if self.track_4a is not None:
+            tag3_ch = 1 if tag3_channel is None else tag3_channel
+            track_4a_res = self.track_4a.process_beacon_frame(
+                bssid=bssid,
+                observed_ssid=ssid,
+                tag3_channel=tag3_ch,
+                seq_num=seq_num,
+                tsf_timestamp=tsf_timestamp,
+                now_ts=now_ts,
+            )
+            if track_4a_res.is_anomaly:
+                state.current_risk_score = max(state.current_risk_score, track_4a_res.risk_score)
+                state.risk_tier = track_4a_res.risk_tier
 
         return Stage25Result(
             bssid=bssid,
@@ -816,4 +1004,5 @@ class CampusNameScreener:
             is_whitelisted=bool(state.is_whitelisted),
             record=record,
             bssid_state=state,
+            track_4a_result=track_4a_res,
         )

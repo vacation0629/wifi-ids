@@ -1,0 +1,19 @@
+[Unit]
+Description=Wi-Fi Evil Twin & Rogue AP Intrusion Detection System (v2.1.2)
+After=network.target network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/wifi-ids
+ExecStartPre=/bin/sh -c 'ifconfig wlan0mon up 2>/dev/null || true'
+ExecStart=/opt/wifi-ids/run_kali_ids.sh --mode udp --web-port 8080
+Restart=always
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

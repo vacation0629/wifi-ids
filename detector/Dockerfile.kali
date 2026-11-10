@@ -1,13 +1,39 @@
 FROM kalilinux/kali-rolling
 
-# Keep image minimal and fast
+ENV PYTHONUNBUFFERED=1
+WORKDIR /app
+
+# 1. Install System Dependencies
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends python3 python3-requests && \
+    apt-get install -y --no-install-recommends \
+        python3 \
+        python3-venv \
+        python3-pip \
+        python3-dev \
+        build-essential \
+        libpcap-dev \
+        wireless-tools \
+        tcpdump \
+        curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-ENV PYTHONUNBUFFERED=1
-WORKDIR /app
+# 2. Initialize Python Virtual Environment (PEP 668 Compliant)
+ENV VIRTUAL_ENV=/app/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# 3. Install Python Dependencies inside venv
+COPY requirements-kali.txt /app/requirements-kali.txt
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r /app/requirements-kali.txt
+
+# 4. Pre-warm FastEmbed Edge Model Cache
+RUN python3 -c "from fastembed import TextEmbedding; print('Pre-warming cache...'); m = TextEmbedding('BAAI/bge-small-en-v1.5'); print('OK')"
+
+# 5. Copy Application Source Code
 COPY . /app
 
-CMD ["python3", "detector.py"]
+EXPOSE 5555/udp 8080
+
+CMD ["python3", "kali_ids_service.py", "--mode", "udp", "--port", "5555", "--web-port", "8080"]

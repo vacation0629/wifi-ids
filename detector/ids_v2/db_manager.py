@@ -6,6 +6,7 @@ Database & In-Memory Batch/Cache Manager
 import json
 import os
 import sqlite3
+import threading
 import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -114,6 +115,7 @@ class BatchDatabaseManager:
         self.last_flush_ts: float = time.monotonic() - self.MIN_FORCE_COOLDOWN_SEC
         self.last_data_version: int = self._get_data_version()
         self.commit_count: int = 0
+        self._lock: threading.RLock = threading.RLock()
 
         self.load_from_db()
 
@@ -294,33 +296,51 @@ class BatchDatabaseManager:
         1. Resets first_seen_ts if un-whitelisted AP was offline for > 1 hour (3600s).
         2. Prunes IE Tag 3/61 channels older than 15s; returns True if Multi-Channel Clone (>=2 active).
         """
-        if tag3_channel is None:
-            return False
-        try:
-            tag3_channel = int(float(tag3_channel))
-        except (ValueError, TypeError):
-            return False
+        with self._lock:
+            if tag3_channel is None:
+                return False
+            try:
+                tag3_channel = int(float(tag3_channel))
+            except (ValueError, TypeError):
+                return False
 
-        if state.bssid in self.whitelisted_bssids:
-            state.is_whitelisted = 1
+            if state.bssid in self.whitelisted_bssids:
+                state.is_whitelisted = 1
 
-        if not state.is_whitelisted and state.last_seen_ts > 0:
-            if (now_ts - state.last_seen_ts) > self.OFFLINE_RESET_SEC:
-                state.first_seen_ts = now_ts  # Reset 24h probation timer after >1h offline gap
+            if not state.is_whitelisted and state.last_seen_ts > 0:
+                if (now_ts - state.last_seen_ts) > self.OFFLINE_RESET_SEC:
+                    state.first_seen_ts = now_ts  # Reset 24h probation timer after >1h offline gap
 
-        if state.first_seen_ts == 0.0:
-            state.first_seen_ts = now_ts
+            if state.first_seen_ts == 0.0:
+                state.first_seen_ts = now_ts
 
-        state.last_seen_ts = max(state.last_seen_ts, now_ts)
-        state.active_channels_map[tag3_channel] = max(state.active_channels_map.get(tag3_channel, 0.0), now_ts)
-        expired = [ch for ch, ts in state.active_channels_map.items() if (now_ts - ts) > self.CHANNEL_WINDOW_SEC]
-        for ch in expired:
-            del state.active_channels_map[ch]
+            state.last_seen_ts = max(state.last_seen_ts, now_ts)
+            state.active_channels_map[tag3_channel] = max(state.active_channels_map.get(tag3_channel, 0.0), now_ts)
+            expired = [ch for ch, ts in state.active_channels_map.items() if (now_ts - ts) > self.CHANNEL_WINDOW_SEC]
+            for ch in expired:
+                del state.active_channels_map[ch]
 
-        if len(state.active_channels_map) == 1:
-            state.primary_channel = tag3_channel  # Legit 1-way channel move completed
-            return False
-        return len(state.active_channels_map) >= 2
+            if len(state.active_channels_map) == 1:
+                state.primary_channel = tag3_channel  # Legit 1-way channel move completed
+                return False
+            return len(state.active_channels_map) >= 2
+
+    def put_bssid(self, state: BSSIDState) -> None:
+        """Stores or updates a BSSIDState in bounded LRU RAM cache (cap 4096) and marks it dirty."""
+        with self._lock:
+            if state.bssid in self.ram_bssids:
+                self.ram_bssids[state.bssid] = state
+                self.ram_bssids.move_to_end(state.bssid)
+            else:
+                self._evict_one_bssid_if_needed()
+                self.ram_bssids[state.bssid] = state
+
+            if state.is_whitelisted:
+                self.whitelisted_bssids.add(state.bssid)
+            else:
+                self.whitelisted_bssids.discard(state.bssid)
+
+            self.dirty_bssids.add(state.bssid)
 
     def record_bssid_update(self, state: BSSIDState, prev_tier: str, now_mono: Optional[float] = None) -> None:
         """
@@ -332,36 +352,37 @@ class BatchDatabaseManager:
         - If urgent_flush_pending and elapsed >= 0.25s: flushes immediately.
         - If elapsed >= 3.0s: routine batch flush.
         """
-        if state.bssid in self.ram_bssids:
-            self.ram_bssids[state.bssid] = state
-            self.ram_bssids.move_to_end(state.bssid)
-        else:
-            self._evict_one_bssid_if_needed()
-            self.ram_bssids[state.bssid] = state
+        with self._lock:
+            self.put_bssid(state)
 
-        if state.is_whitelisted:
-            self.whitelisted_bssids.add(state.bssid)
-        else:
-            self.whitelisted_bssids.discard(state.bssid)
+            if now_mono is None:
+                now_mono = time.monotonic()
+            if self.last_flush_ts > now_mono:
+                self.last_flush_ts = now_mono - self.MIN_FORCE_COOLDOWN_SEC
+            elapsed = now_mono - self.last_flush_ts
 
-        self.dirty_bssids.add(state.bssid)
+            new_rank = self.TIER_RANK.get(state.risk_tier, 0)
+            old_rank = self.TIER_RANK.get(prev_tier, 0)
 
-        if now_mono is None:
-            now_mono = time.monotonic()
-        elapsed = now_mono - self.last_flush_ts
-
-        new_rank = self.TIER_RANK.get(state.risk_tier, 0)
-        old_rank = self.TIER_RANK.get(prev_tier, 0)
-
-        if new_rank >= 1 and new_rank > old_rank:
-            if elapsed >= self.MIN_FORCE_COOLDOWN_SEC:
+            if new_rank >= 1 and new_rank > old_rank:
+                if elapsed >= self.MIN_FORCE_COOLDOWN_SEC:
+                    self.flush_to_sqlite(force=True, now_mono=now_mono)
+                else:
+                    self.urgent_flush_pending = True
+            elif self.urgent_flush_pending and elapsed >= self.MIN_FORCE_COOLDOWN_SEC:
                 self.flush_to_sqlite(force=True, now_mono=now_mono)
-            else:
-                self.urgent_flush_pending = True
-        elif self.urgent_flush_pending and elapsed >= self.MIN_FORCE_COOLDOWN_SEC:
-            self.flush_to_sqlite(force=True, now_mono=now_mono)
-        elif elapsed >= self.FLUSH_INTERVAL_SEC:
-            self.flush_to_sqlite(force=False, now_mono=now_mono)
+            elif elapsed >= self.FLUSH_INTERVAL_SEC:
+                self.flush_to_sqlite(force=False, now_mono=now_mono)
+
+    def check_and_sync_data_version(self) -> bool:
+        """Checks PRAGMA data_version (0.001 ms) and hot-reloads whitelists if modified externally."""
+        with self._lock:
+            curr_ver = self._get_data_version()
+            if curr_ver != self.last_data_version:
+                self.reload_whitelist_into_ram()
+                self.last_data_version = curr_ver
+                return True
+            return False
 
     def flush_to_sqlite(self, force: bool = False, now_mono: Optional[float] = None) -> bool:
         """
@@ -372,196 +393,201 @@ class BatchDatabaseManager:
         4. Inserts pending_behavior_logs.
         Returns True if an actual commit to SQLite took place.
         """
-        curr_ver = self._get_data_version()
-        if curr_ver != self.last_data_version:
-            self.reload_whitelist_into_ram()
-            self.last_data_version = curr_ver
+        with self._lock:
+            curr_ver = self._get_data_version()
+            if curr_ver != self.last_data_version:
+                self.reload_whitelist_into_ram()
+                self.last_data_version = curr_ver
 
-        if not (force or self.urgent_flush_pending or self.new_ssid_queue or self.dirty_bssids or self.pending_behavior_logs):
+            if not (force or self.urgent_flush_pending or self.new_ssid_queue or self.dirty_bssids or self.pending_behavior_logs):
+                if now_mono is None:
+                    now_mono = time.monotonic()
+                self.last_flush_ts = now_mono
+                return False
+
+            with self.conn:
+                if self.new_ssid_queue:
+                    self.conn.executemany(
+                        """INSERT INTO ssid_catalog VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                           ON CONFLICT(ssid_text) DO UPDATE SET
+                               matched_whitelist_ssid=excluded.matched_whitelist_ssid,
+                               xgb_prob=excluded.xgb_prob,
+                               bge_cos_raw=excluded.bge_cos_raw,
+                               bge_cos_clean=excluded.bge_cos_clean,
+                               bge_vector_blob=excluded.bge_vector_blob,
+                               is_suspicious_name=excluded.is_suspicious_name,
+                               first_computed_at=excluded.first_computed_at""",
+                        list(self.new_ssid_queue.values()),
+                    )
+                    self.new_ssid_queue.clear()
+
+                if self.dirty_bssids:
+                    rows = [
+                        (
+                            s.bssid, s.current_ssid, s.is_whitelisted, s.is_mutated,
+                            json.dumps(s.active_channels_map), s.first_seen_ts, s.last_seen_ts,
+                            s.last_rssi, s.rssi_volatility_db, s.primary_channel,
+                            s.encryption_type, s.ie_match_status, s.current_risk_score, s.risk_tier
+                        )
+                        for b in self.dirty_bssids if (s := self.ram_bssids.get(b)) is not None
+                    ]
+                    if rows:
+                        self.conn.executemany(
+                            """INSERT INTO bssid_devices VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                               ON CONFLICT(bssid) DO UPDATE SET
+                                   current_ssid=excluded.current_ssid,
+                                   is_whitelisted=excluded.is_whitelisted,
+                                   is_mutated=excluded.is_mutated,
+                                   active_channels_json=excluded.active_channels_json,
+                                   first_seen_ts=excluded.first_seen_ts,
+                                   last_seen_ts=excluded.last_seen_ts,
+                                   last_rssi=excluded.last_rssi,
+                                   rssi_volatility_db=excluded.rssi_volatility_db,
+                                   primary_channel=excluded.primary_channel,
+                                   encryption_type=excluded.encryption_type,
+                                   ie_match_status=excluded.ie_match_status,
+                                   current_risk_score=excluded.current_risk_score,
+                                   risk_tier=excluded.risk_tier""",
+                            rows,
+                        )
+                    self.dirty_bssids.clear()
+
+                if self.pending_behavior_logs:
+                    self.conn.executemany(
+                        """INSERT INTO beacon_behavior_logs
+                           (bssid, timestamp, seq_num, tsf_timestamp, jitter_ms,
+                            deauth_count_1m, channel_anomaly_type, ssid_mutated, raw_ie_fingerprint)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        self.pending_behavior_logs,
+                    )
+                    self.pending_behavior_logs.clear()
+
+                self.commit_count += 1
+
+            self.urgent_flush_pending = False
+            self.last_data_version = self._get_data_version()
             if now_mono is None:
                 now_mono = time.monotonic()
             self.last_flush_ts = now_mono
-            return False
-
-        with self.conn:
-            if self.new_ssid_queue:
-                self.conn.executemany(
-                    """INSERT INTO ssid_catalog VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                       ON CONFLICT(ssid_text) DO UPDATE SET
-                           matched_whitelist_ssid=excluded.matched_whitelist_ssid,
-                           xgb_prob=excluded.xgb_prob,
-                           bge_cos_raw=excluded.bge_cos_raw,
-                           bge_cos_clean=excluded.bge_cos_clean,
-                           bge_vector_blob=excluded.bge_vector_blob,
-                           is_suspicious_name=excluded.is_suspicious_name,
-                           first_computed_at=excluded.first_computed_at""",
-                    list(self.new_ssid_queue.values()),
-                )
-                self.new_ssid_queue.clear()
-
-            if self.dirty_bssids:
-                rows = [
-                    (
-                        s.bssid, s.current_ssid, s.is_whitelisted, s.is_mutated,
-                        json.dumps(s.active_channels_map), s.first_seen_ts, s.last_seen_ts,
-                        s.last_rssi, s.rssi_volatility_db, s.primary_channel,
-                        s.encryption_type, s.ie_match_status, s.current_risk_score, s.risk_tier
-                    )
-                    for b in self.dirty_bssids if (s := self.ram_bssids.get(b)) is not None
-                ]
-                if rows:
-                    self.conn.executemany(
-                        """INSERT INTO bssid_devices VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                           ON CONFLICT(bssid) DO UPDATE SET
-                               current_ssid=excluded.current_ssid,
-                               is_whitelisted=excluded.is_whitelisted,
-                               is_mutated=excluded.is_mutated,
-                               active_channels_json=excluded.active_channels_json,
-                               first_seen_ts=excluded.first_seen_ts,
-                               last_seen_ts=excluded.last_seen_ts,
-                               last_rssi=excluded.last_rssi,
-                               rssi_volatility_db=excluded.rssi_volatility_db,
-                               primary_channel=excluded.primary_channel,
-                               encryption_type=excluded.encryption_type,
-                               ie_match_status=excluded.ie_match_status,
-                               current_risk_score=excluded.current_risk_score,
-                               risk_tier=excluded.risk_tier""",
-                        rows,
-                    )
-                self.dirty_bssids.clear()
-
-            if self.pending_behavior_logs:
-                self.conn.executemany(
-                    """INSERT INTO beacon_behavior_logs
-                       (bssid, timestamp, seq_num, tsf_timestamp, jitter_ms,
-                        deauth_count_1m, channel_anomaly_type, ssid_mutated, raw_ie_fingerprint)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    self.pending_behavior_logs,
-                )
-                self.pending_behavior_logs.clear()
-
-            self.commit_count += 1
-
-        self.urgent_flush_pending = False
-        self.last_data_version = self._get_data_version()
-        if now_mono is None:
-            now_mono = time.monotonic()
-        self.last_flush_ts = now_mono
-        return True
+            return True
 
     def reload_whitelist_into_ram(self) -> None:
         """Hot-reloads manually whitelisted BSSIDs after PRAGMA data_version change."""
-        self.whitelisted_bssids.clear()
-        for row in self.conn.execute("SELECT bssid FROM bssid_devices WHERE is_whitelisted = 1"):
-            self.whitelisted_bssids.add(row[0])
-            if row[0] in self.ram_bssids:
-                self.ram_bssids[row[0]].is_whitelisted = 1
-                self.ram_bssids[row[0]].risk_tier = "LOW"
-                self.ram_bssids[row[0]].current_risk_score = 0
+        with self._lock:
+            self.whitelisted_bssids.clear()
+            for row in self.conn.execute("SELECT bssid FROM bssid_devices WHERE is_whitelisted = 1"):
+                self.whitelisted_bssids.add(row[0])
+                if row[0] in self.ram_bssids:
+                    self.ram_bssids[row[0]].is_whitelisted = 1
+                    self.ram_bssids[row[0]].risk_tier = "LOW"
+                    self.ram_bssids[row[0]].current_risk_score = 0
 
-        # Demote in RAM any BSSIDs that were un-whitelisted externally
-        for bssid, state in self.ram_bssids.items():
-            if state.is_whitelisted and bssid not in self.whitelisted_bssids:
-                state.is_whitelisted = 0
+            # Demote in RAM any BSSIDs that were un-whitelisted externally
+            for bssid, state in self.ram_bssids.items():
+                if state.is_whitelisted and bssid not in self.whitelisted_bssids:
+                    state.is_whitelisted = 0
 
     def put_ssid(self, record: SSIDRecord) -> None:
         """Stores SSIDRecord in bounded LRU RAM and enqueues for SQLite persistence."""
-        if record.ssid_text not in self.ram_ssids:
-            if len(self.ram_ssids) >= self.MAX_RAM_ENTRIES:
-                self.ram_ssids.popitem(last=False)
-        self.ram_ssids[record.ssid_text] = record
-        self.ram_ssids.move_to_end(record.ssid_text)
+        with self._lock:
+            if record.ssid_text not in self.ram_ssids:
+                if len(self.ram_ssids) >= self.MAX_RAM_ENTRIES:
+                    self.ram_ssids.popitem(last=False)
+            self.ram_ssids[record.ssid_text] = record
+            self.ram_ssids.move_to_end(record.ssid_text)
 
-        self.new_ssid_queue[record.ssid_text] = (
-            record.ssid_text,
-            record.matched_whitelist_ssid,
-            record.xgb_prob,
-            record.bge_cos_raw,
-            record.bge_cos_clean,
-            record.bge_vector_blob,
-            record.is_suspicious_name,
-            record.first_computed_at
-        )
+            self.new_ssid_queue[record.ssid_text] = (
+                record.ssid_text,
+                record.matched_whitelist_ssid,
+                record.xgb_prob,
+                record.bge_cos_raw,
+                record.bge_cos_clean,
+                record.bge_vector_blob,
+                record.is_suspicious_name,
+                record.first_computed_at
+            )
 
     def get_ssid(self, ssid_text: str) -> Optional[SSIDRecord]:
         """Retrieves SSIDRecord from RAM cache or SQLite catalog."""
-        if ssid_text in self.ram_ssids:
-            self.ram_ssids.move_to_end(ssid_text)
-            return self.ram_ssids[ssid_text]
+        with self._lock:
+            if ssid_text in self.ram_ssids:
+                self.ram_ssids.move_to_end(ssid_text)
+                return self.ram_ssids[ssid_text]
 
-        cursor = self.conn.cursor()
-        cursor.execute(
-            """SELECT ssid_text, matched_whitelist_ssid, xgb_prob, bge_cos_raw,
-                      bge_cos_clean, bge_vector_blob, is_suspicious_name, first_computed_at
-               FROM ssid_catalog WHERE ssid_text = ?""",
-            (ssid_text,)
-        )
-        row = cursor.fetchone()
-        if not row:
-            return None
+            cursor = self.conn.cursor()
+            cursor.execute(
+                """SELECT ssid_text, matched_whitelist_ssid, xgb_prob, bge_cos_raw,
+                          bge_cos_clean, bge_vector_blob, is_suspicious_name, first_computed_at
+                   FROM ssid_catalog WHERE ssid_text = ?""",
+                (ssid_text,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
 
-        record = SSIDRecord(
-            ssid_text=row[0],
-            matched_whitelist_ssid=row[1],
-            xgb_prob=row[2],
-            bge_cos_raw=row[3],
-            bge_cos_clean=row[4],
-            bge_vector_blob=row[5],
-            is_suspicious_name=row[6],
-            first_computed_at=row[7]
-        )
-        if len(self.ram_ssids) >= self.MAX_RAM_ENTRIES:
-            self.ram_ssids.popitem(last=False)
-        self.ram_ssids[ssid_text] = record
-        return record
+            record = SSIDRecord(
+                ssid_text=row[0],
+                matched_whitelist_ssid=row[1],
+                xgb_prob=row[2],
+                bge_cos_raw=row[3],
+                bge_cos_clean=row[4],
+                bge_vector_blob=row[5],
+                is_suspicious_name=row[6],
+                first_computed_at=row[7]
+            )
+            if len(self.ram_ssids) >= self.MAX_RAM_ENTRIES:
+                self.ram_ssids.popitem(last=False)
+            self.ram_ssids[ssid_text] = record
+            return record
 
     def get_bssid(self, bssid: str) -> Optional[BSSIDState]:
         """Retrieves BSSIDState from RAM cache or SQLite devices."""
-        if bssid in self.ram_bssids:
-            self.ram_bssids.move_to_end(bssid)
-            return self.ram_bssids[bssid]
+        with self._lock:
+            if bssid in self.ram_bssids:
+                self.ram_bssids.move_to_end(bssid)
+                return self.ram_bssids[bssid]
 
-        cursor = self.conn.cursor()
-        cursor.execute(
-            """SELECT bssid, current_ssid, is_whitelisted, is_mutated, active_channels_json,
-                      first_seen_ts, last_seen_ts, last_rssi, rssi_volatility_db,
-                      primary_channel, encryption_type, ie_match_status, current_risk_score, risk_tier
-               FROM bssid_devices WHERE bssid = ?""",
-            (bssid,)
-        )
-        row = cursor.fetchone()
-        if not row:
-            return None
+            cursor = self.conn.cursor()
+            cursor.execute(
+                """SELECT bssid, current_ssid, is_whitelisted, is_mutated, active_channels_json,
+                          first_seen_ts, last_seen_ts, last_rssi, rssi_volatility_db,
+                          primary_channel, encryption_type, ie_match_status, current_risk_score, risk_tier
+                   FROM bssid_devices WHERE bssid = ?""",
+                (bssid,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
 
-        active_ch = {}
-        if row[4]:
-            try:
-                active_ch = {int(k): float(v) for k, v in json.loads(row[4]).items()}
-            except Exception:
-                active_ch = {}
+            active_ch = {}
+            if row[4]:
+                try:
+                    active_ch = {int(k): float(v) for k, v in json.loads(row[4]).items()}
+                except Exception:
+                    active_ch = {}
 
-        state = BSSIDState(
-            bssid=row[0],
-            current_ssid=row[1],
-            is_whitelisted=row[2],
-            is_mutated=row[3],
-            active_channels_map=active_ch,
-            first_seen_ts=row[5],
-            last_seen_ts=row[6],
-            last_rssi=row[7],
-            rssi_volatility_db=row[8],
-            primary_channel=row[9],
-            encryption_type=row[10],
-            ie_match_status=row[11],
-            current_risk_score=row[12],
-            risk_tier=row[13]
-        )
-        if row[2] == 1:
-            self.whitelisted_bssids.add(row[0])
+            state = BSSIDState(
+                bssid=row[0],
+                current_ssid=row[1],
+                is_whitelisted=row[2],
+                is_mutated=row[3],
+                active_channels_map=active_ch,
+                first_seen_ts=row[5],
+                last_seen_ts=row[6],
+                last_rssi=row[7],
+                rssi_volatility_db=row[8],
+                primary_channel=row[9],
+                encryption_type=row[10],
+                ie_match_status=row[11],
+                current_risk_score=row[12],
+                risk_tier=row[13]
+            )
+            if row[2] == 1:
+                self.whitelisted_bssids.add(row[0])
 
-        self._evict_one_bssid_if_needed()
-        self.ram_bssids[bssid] = state
-        return state
+            self._evict_one_bssid_if_needed()
+            self.ram_bssids[bssid] = state
+            return state
 
     def add_behavior_log(
         self,
@@ -576,71 +602,75 @@ class BatchDatabaseManager:
         raw_ie_fingerprint: str = ""
     ) -> None:
         """Enqueues a beacon behavior log entry to be flushed in the next batch."""
-        self.pending_behavior_logs.append((
-            bssid,
-            timestamp,
-            seq_num,
-            tsf_timestamp,
-            jitter_ms,
-            deauth_count_1m,
-            channel_anomaly_type,
-            ssid_mutated,
-            raw_ie_fingerprint
-        ))
+        with self._lock:
+            self.pending_behavior_logs.append((
+                bssid,
+                timestamp,
+                seq_num,
+                tsf_timestamp,
+                jitter_ms,
+                deauth_count_1m,
+                channel_anomaly_type,
+                ssid_mutated,
+                raw_ie_fingerprint
+            ))
 
     def save_campus_ie_profile(self, profile: CampusIEProfile) -> None:
         """Persists or updates the campus IE blueprint profile."""
-        with self.conn:
-            self.conn.execute(
-                """INSERT INTO campus_ie_profile
-                   (profile_name, locked_at, akm_suites_json, pairwise_ciphers_json,
-                    has_mdid, has_vendor_221, mimo_streams, raw_ies_hash)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                   ON CONFLICT(profile_name) DO UPDATE SET
-                       locked_at=excluded.locked_at,
-                       akm_suites_json=excluded.akm_suites_json,
-                       pairwise_ciphers_json=excluded.pairwise_ciphers_json,
-                       has_mdid=excluded.has_mdid,
-                       has_vendor_221=excluded.has_vendor_221,
-                       mimo_streams=excluded.mimo_streams,
-                       raw_ies_hash=excluded.raw_ies_hash""",
-                (
-                    profile.profile_name,
-                    profile.locked_at,
-                    json.dumps(profile.akm_suites),
-                    json.dumps(profile.pairwise_ciphers),
-                    profile.has_mdid,
-                    profile.has_vendor_221,
-                    profile.mimo_streams,
-                    profile.raw_ies_hash
+        with self._lock:
+            with self.conn:
+                self.conn.execute(
+                    """INSERT INTO campus_ie_profile
+                       (profile_name, locked_at, akm_suites_json, pairwise_ciphers_json,
+                        has_mdid, has_vendor_221, mimo_streams, raw_ies_hash)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                       ON CONFLICT(profile_name) DO UPDATE SET
+                           locked_at=excluded.locked_at,
+                           akm_suites_json=excluded.akm_suites_json,
+                           pairwise_ciphers_json=excluded.pairwise_ciphers_json,
+                           has_mdid=excluded.has_mdid,
+                           has_vendor_221=excluded.has_vendor_221,
+                           mimo_streams=excluded.mimo_streams,
+                           raw_ies_hash=excluded.raw_ies_hash""",
+                    (
+                        profile.profile_name,
+                        profile.locked_at,
+                        json.dumps(profile.akm_suites),
+                        json.dumps(profile.pairwise_ciphers),
+                        profile.has_mdid,
+                        profile.has_vendor_221,
+                        profile.mimo_streams,
+                        profile.raw_ies_hash
+                    )
                 )
-            )
-            self.commit_count += 1
+                self.commit_count += 1
 
     def get_campus_ie_profile(self, profile_name: str = "campus_default") -> Optional[CampusIEProfile]:
         """Retrieves a locked campus IE blueprint profile."""
-        cursor = self.conn.cursor()
-        cursor.execute(
-            """SELECT profile_name, locked_at, akm_suites_json, pairwise_ciphers_json,
-                      has_mdid, has_vendor_221, mimo_streams, raw_ies_hash
-               FROM campus_ie_profile WHERE profile_name = ?""",
-            (profile_name,)
-        )
-        row = cursor.fetchone()
-        if not row:
-            return None
-        return CampusIEProfile(
-            profile_name=row[0],
-            locked_at=row[1],
-            akm_suites=json.loads(row[2]) if row[2] else [],
-            pairwise_ciphers=json.loads(row[3]) if row[3] else [],
-            has_mdid=row[4],
-            has_vendor_221=row[5],
-            mimo_streams=row[6],
-            raw_ies_hash=row[7]
-        )
+        with self._lock:
+            cursor = self.conn.cursor()
+            cursor.execute(
+                """SELECT profile_name, locked_at, akm_suites_json, pairwise_ciphers_json,
+                          has_mdid, has_vendor_221, mimo_streams, raw_ies_hash
+                   FROM campus_ie_profile WHERE profile_name = ?""",
+                (profile_name,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return CampusIEProfile(
+                profile_name=row[0],
+                locked_at=row[1],
+                akm_suites=json.loads(row[2]) if row[2] else [],
+                pairwise_ciphers=json.loads(row[3]) if row[3] else [],
+                has_mdid=row[4],
+                has_vendor_221=row[5],
+                mimo_streams=row[6],
+                raw_ies_hash=row[7]
+            )
 
     def close(self) -> None:
         """Flushes remaining pending dirty records and closes the database connection."""
-        self.flush_to_sqlite(force=True)
-        self.conn.close()
+        with self._lock:
+            self.flush_to_sqlite(force=True)
+            self.conn.close()
